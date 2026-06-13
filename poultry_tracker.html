@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="manifest" href="manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Poultry Tracker</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #2980b9;
+            --success: #27ae60;
+            --danger: #c0392b;
+            --bg: #f8f9fa;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 15px;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        h1, h2 { color: var(--primary); margin-top: 0; }
+        .header-section {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 2.3fr 1fr; 
+            gap: 20px;
+        }
+        @media (max-width: 1150px) {
+            .grid-layout { grid-template-columns: 1fr; }
+        }
+        .section {
+            background: #fff;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        th, td {
+            border: 1px solid #bdc3c7;
+            padding: 5px 3px;
+            text-align: center;
+        }
+        th { background-color: var(--secondary); color: white; }
+        
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; }
+
+        input[type="number"], input[type="date"], input[type="text"], select {
+            width: 95%;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 13px;
+        }
+        input[readonly] {
+            background-color: #f2f4f4;
+            font-weight: 600;
+            color: #333;
+            border: none;
+            text-align: center;
+        }
+        button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.8; }
+        .btn-primary { background-color: var(--accent); color: white; }
+        .btn-success { background-color: var(--success); color: white; }
+        .btn-danger { background-color: var(--danger); color: white; }
+        .btn-outline { background-color: transparent; border: 1px solid var(--secondary); color: var(--secondary); }
+        
+        .totals-row { background-color: #eaf2f8; font-weight: bold; }
+        .save-indicator { font-size: 14px; color: var(--success); font-weight: bold; margin-right: 15px; }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: white; padding: 25px; border-radius: 8px; width: 450px; max-width: 90%;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+        }
+        .modal-content h2 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .summary-stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #ddd; font-size: 15px; }
+        .summary-stat strong { color: var(--primary); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-section">
+        <div>
+            <h1>Poultry Tracker</h1>
+            <div style="display: flex; gap: 15px; margin-top: 10px;">
+                <label><strong>Bag Wt (kg):</strong> <input type="number" id="bagWt" value="50" style="width:70px;" onchange="calculateTable()"></label>
+                <label><strong>Init S1:</strong> <input type="number" id="initShed1" value="5962" style="width:80px;" onchange="calculateTable()"></label>
+                <label><strong>Init S2:</strong> <input type="number" id="initShed2" value="6316" style="width:80px;" onchange="calculateTable()"></label>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="save-indicator" id="saveStatus">🟢 All changes saved</span>
+            <button class="btn-primary" onclick="openSummary()">Generate Batch Summary</button>
+            <button class="btn-danger" onclick="clearData()">Clear Tracker</button>
+        </div>
+    </div>
+
+    <div class="grid-layout">
+        <div class="section">
+            <h2>Daily Log</h2>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 4%">Day</th>
+                            <th style="width: 11%">Date</th>
+                            <th style="width: 6%">Mor S1</th>
+                            <th style="width: 6%">Mor S2</th>
+                            <th style="width: 6%">Tot Mor</th>
+                            <th style="width: 9%">Stock S1</th>
+                            <th style="width: 9%">Stock S2</th>
+                            <th style="width: 7%">Feed S1</th>
+                            <th style="width: 7%">Feed S2</th>
+                            <th style="width: 8%">Avg Wt(kg)</th>
+                            <th style="width: 7%">FCR</th>
+                            <th style="width: 20%">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dailyBody">
+                        </tbody>
+                    <tfoot>
+                        <tr class="totals-row">
+                            <td colspan="2" style="text-align: right; padding-right: 10px;">TOTALS:</td>
+                            <td id="tot_m1">0</td>
+                            <td id="tot_m2">0</td>
+                            <td id="tot_daily">0</td>
+                            <td colspan="2"></td>
+                            <td id="tot_f1">0</td>
+                            <td id="tot_f2">0</td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <button class="btn-outline" style="margin-top: 15px;" onclick="addDailyRow()">+ Add Day</button>
+        </div>
+
+        <div class="section">
+            <h2>Feed Inventory (Arrivals)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 20%">Date</th>
+                        <th style="width: 36%">Type</th>
+                        <th style="width: 14%">Bags S1</th>
+                        <th style="width: 14%">Bags S2</th>
+                        <th style="width: 16%">Total</th>
+                    </tr>
+                </thead>
+                <tbody id="feedBody">
+                    </tbody>
+                <tfoot>
+                    <tr class="totals-row">
+                        <td colspan="2" style="text-align: right; padding-right: 10px;">NET TOTAL:</td>
+                        <td id="feed_tot_s1">0</td>
+                        <td id="feed_tot_s2">0</td>
+                        <td id="feed_tot_all">0</td>
+                    </tr>
+                </tfoot>
+            </table>
+            <button class="btn-success" style="margin-top: 15px;" onclick="addFeedRow()">+ Add Feed Row</button>
+            <p style="font-size: 11px; color: var(--danger); margin-top: 10px;">* Note: "Return Feed" amounts are automatically deleted/deducted from the Net Total.</p>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="summaryModal">
+    <div class="modal-content">
+        <h2>Batch Summary Report</h2>
+        <div id="summaryContent">
+            </div>
+        <button class="btn-primary" style="margin-top: 20px; width: 100%;" onclick="closeSummary()">Close Report</button>
+    </div>
+</div>
+
+<script>
+    let totalDays = 45; 
+
+    // Listen to ANY input changes on the entire document to trigger calculations and auto-save
+    document.addEventListener('input', function(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+            document.getElementById('saveStatus').innerText = "Saving...";
+            
+            if (e.target.closest('#feedBody')) {
+                calcFeed();
+            } else {
+                calculateTable();
+            }
+
+            clearTimeout(window.saveTimeout);
+            window.saveTimeout = setTimeout(() => {
+                saveData();
+                document.getElementById('saveStatus').innerText = "🟢 All changes saved";
+            }, 500);
+        }
+    });
+
+    // 1. Initialization
+    window.onload = () => {
+        if (localStorage.getItem('poultryData')) {
+            loadData();
+        } else {
+            generateDailyTable(45);
+            addFeedRow();
+            calculateTable();
+            calcFeed();
+        }
+    };
+
+    function generateDailyTable(days) {
+        const tbody = document.getElementById('dailyBody');
+        tbody.innerHTML = '';
+        for (let i = 1; i <= days; i++) {
+            appendDailyRowHTML(i);
+        }
+        totalDays = days;
+    }
+
+    function appendDailyRowHTML(i) {
+        const tbody = document.getElementById('dailyBody');
+        let dateInput = i === 1 ? `<input type="date" id="date_1" onchange="autoFillDates()">` : `<input type="date" id="date_${i}">`;
+        
+        const tr = document.createElement('tr');
+        tr.id = `row_${i}`;
+        tr.innerHTML = `
+            <td><strong>${i}</strong></td>
+            <td>${dateInput}</td>
+            <td><input type="number" id="m1_${i}"></td>
+            <td><input type="number" id="m2_${i}"></td>
+            <td><input type="text" id="dtot_${i}" readonly></td>
+            <td><input type="text" id="s1_${i}" readonly></td>
+            <td><input type="text" id="s2_${i}" readonly></td>
+            <td><input type="number" step="any" id="f1_${i}"></td>
+            <td><input type="number" step="any" id="f2_${i}"></td>
+            <td><input type="number" step="any" id="wt_${i}"></td>
+            <td><input type="text" id="fcr_${i}" readonly></td>
+            <td><input type="text" id="note_${i}"></td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    function addDailyRow() {
+        totalDays++;
+        appendDailyRowHTML(totalDays);
+        autoFillDates(); 
+        calculateTable();
+        saveData();
+    }
+
+    // Auto-fill dates based on Day 1
+    function autoFillDates() {
+        const day1Val = document.getElementById('date_1').value;
+        if (!day1Val) return;
+
+        const parts = day1Val.split('-');
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1; 
+        const day = parseInt(parts[2], 10);
+
+        for (let i = 2; i <= totalDays; i++) {
+            const nextDate = new Date(year, month, day + (i - 1));
+            const yyyy = nextDate.getFullYear();
+            const mm = String(nextDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(nextDate.getDate()).padStart(2, '0');
+            
+            let target = document.getElementById(`date_${i}`);
+            if(target) target.value = `${yyyy}-${mm}-${dd}`;
+        }
+    }
+
+    // 2. Core Calculations
+    function calculateTable() {
+        let currentS1 = parseInt(document.getElementById('initShed1').value) || 0;
+        let currentS2 = parseInt(document.getElementById('initShed2').value) || 0;
+        let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
+        
+        let totalMortalityS1 = 0, totalMortalityS2 = 0;
+        let totalFeedS1 = 0, totalFeedS2 = 0;
+        let cumulativeFeedBags = 0;
+
+        for (let i = 1; i <= totalDays; i++) {
+            if(!document.getElementById(`m1_${i}`)) continue; 
+
+            // Mortality
+            let m1 = parseInt(document.getElementById(`m1_${i}`).value) || 0;
+            let m2 = parseInt(document.getElementById(`m2_${i}`).value) || 0;
+            
+            if (document.getElementById(`m1_${i}`).value !== '' || document.getElementById(`m2_${i}`).value !== '') {
+                totalMortalityS1 += m1; totalMortalityS2 += m2;
+                document.getElementById(`dtot_${i}`).value = m1 + m2;
+                currentS1 -= m1; currentS2 -= m2;
+                document.getElementById(`s1_${i}`).value = currentS1;
+                document.getElementById(`s2_${i}`).value = currentS2;
+            } else {
+                document.getElementById(`dtot_${i}`).value = '';
+                document.getElementById(`s1_${i}`).value = '';
+                document.getElementById(`s2_${i}`).value = '';
+            }
+
+            // Feed Consumption
+            let f1 = parseFloat(document.getElementById(`f1_${i}`).value) || 0;
+            let f2 = parseFloat(document.getElementById(`f2_${i}`).value) || 0;
+            totalFeedS1 += f1; totalFeedS2 += f2;
+            cumulativeFeedBags += (f1 + f2);
+
+            // FCR Calculation
+            let wt = parseFloat(document.getElementById(`wt_${i}`).value) || 0;
+            let liveStock = currentS1 + currentS2;
+            let fcrField = document.getElementById(`fcr_${i}`);
+
+            if (wt > 0 && liveStock > 0 && cumulativeFeedBags > 0) {
+                let totalFeedKg = cumulativeFeedBags * bagWt;
+                let totalLiveKg = liveStock * wt;
+                fcrField.value = (totalFeedKg / totalLiveKg).toFixed(3);
+            } else {
+                fcrField.value = '';
+            }
+        }
+
+        // Totals update
+        document.getElementById('tot_m1').innerText = totalMortalityS1;
+        document.getElementById('tot_m2').innerText = totalMortalityS2;
+        document.getElementById('tot_daily').innerText = totalMortalityS1 + totalMortalityS2;
+        document.getElementById('tot_f1').innerText = parseFloat(totalFeedS1.toFixed(2));
+        document.getElementById('tot_f2').innerText = parseFloat(totalFeedS2.toFixed(2));
+    }
+
+    // 3. Feed Arrivals Logic
+    function addFeedRow(date='', type='', b1='', b2='') {
+        const tbody = document.getElementById('feedBody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="date" value="${date}"></td>
+            <td>
+                <select>
+                    <option value="" disabled ${type===''?'selected':''}>Select...</option>
+                    <option value="Old feed" ${type==='Old feed'?'selected':''}>Old feed</option>
+                    <option value="Pre-Starter" ${type==='Pre-Starter'?'selected':''}>Pre-Starter</option>
+                    <option value="Starter" ${type==='Starter'?'selected':''}>Starter</option>
+                    <option value="Finisher" ${type==='Finisher'?'selected':''}>Finisher</option>
+                    <option value="Return Feed" ${type==='Return Feed'?'selected':''}>Return Feed</option>
+                </select>
+            </td>
+            <td><input type="number" step="any" value="${b1}"></td>
+            <td><input type="number" step="any" value="${b2}"></td>
+            <td><input type="text" readonly></td>
+        `;
+        tbody.appendChild(tr);
+        calcFeed();
+    }
+
+    function calcFeed() {
+        const rows = document.getElementById('feedBody').querySelectorAll('tr');
+        let grandS1 = 0, grandS2 = 0;
+
+        rows.forEach(row => {
+            let type = row.cells[1].querySelector('select').value;
+            let b1 = parseFloat(row.cells[2].querySelector('input').value) || 0;
+            let b2 = parseFloat(row.cells[3].querySelector('input').value) || 0;
+            
+            // Row total
+            row.cells[4].querySelector('input').value = parseFloat((b1 + b2).toFixed(2));
+
+            // Return feed is strictly deleted/deducted from totals. All other types (including Old feed) are added.
+            if (type === 'Return Feed') { 
+                grandS1 -= b1; 
+                grandS2 -= b2; 
+            } else { 
+                grandS1 += b1; 
+                grandS2 += b2; 
+            }
+        });
+
+        document.getElementById('feed_tot_s1').innerText = grandS1.toFixed(2);
+        document.getElementById('feed_tot_s2').innerText = grandS2.toFixed(2);
+        document.getElementById('feed_tot_all').innerText = (grandS1 + grandS2).toFixed(2);
+    }
+
+    // 4. Batch Summary Report
+    function openSummary() {
+        let init1 = parseInt(document.getElementById('initShed1').value) || 0;
+        let init2 = parseInt(document.getElementById('initShed2').value) || 0;
+        let totalInit = init1 + init2;
+
+        let totMor = parseInt(document.getElementById('tot_daily').innerText) || 0;
+        let morPercent = totalInit > 0 ? ((totMor / totalInit) * 100).toFixed(2) : 0;
+        
+        let surviving = totalInit - totMor;
+        let survivalPercent = totalInit > 0 ? ((surviving / totalInit) * 100).toFixed(2) : 0;
+
+        let totalFeedBags = (parseFloat(document.getElementById('tot_f1').innerText) || 0) + (parseFloat(document.getElementById('tot_f2').innerText) || 0);
+        let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
+        let totalFeedKg = totalFeedBags * bagWt;
+
+        let finalFCR = "N/A";
+        let finalWt = "N/A";
+        for (let i = totalDays; i >= 1; i--) {
+            let wtVal = document.getElementById(`wt_${i}`)?.value;
+            if (wtVal) {
+                finalWt = wtVal + " kg";
+                finalFCR = document.getElementById(`fcr_${i}`).value || "N/A";
+                break;
+            }
+        }
+
+        document.getElementById('summaryContent').innerHTML = `
+            <div class="summary-stat"><span>Initial Stock</span> <strong>${totalInit} birds</strong></div>
+            <div class="summary-stat"><span>Total Mortality</span> <strong>${totMor} birds (${morPercent}%)</strong></div>
+            <div class="summary-stat"><span>Surviving Birds</span> <strong>${surviving} birds (${survivalPercent}%)</strong></div>
+            <div class="summary-stat" style="margin-top: 15px;"><span>Feed Consumed</span> <strong>${totalFeedBags} bags (${totalFeedKg.toLocaleString()} kg)</strong></div>
+            <div class="summary-stat"><span>Final Avg Weight</span> <strong>${finalWt}</strong></div>
+            <div class="summary-stat" style="background: #eaf2f8; padding: 10px; margin-top: 15px; border-radius: 4px;">
+                <span><strong>Batch Final FCR</strong></span> <strong style="font-size: 18px;">${finalFCR}</strong>
+            </div>
+        `;
+        document.getElementById('summaryModal').style.display = 'flex';
+    }
+
+    function closeSummary() {
+        document.getElementById('summaryModal').style.display = 'none';
+    }
+
+    // 5. Auto-Save & Load System (Local Storage)
+    function saveData() {
+        let data = {
+            settings: {
+                initS1: document.getElementById('initShed1').value,
+                initS2: document.getElementById('initShed2').value,
+                bagWt: document.getElementById('bagWt').value,
+                days: totalDays
+            },
+            daily: [],
+            feed: []
+        };
+
+        for(let i=1; i<=totalDays; i++) {
+            if(!document.getElementById(`m1_${i}`)) continue;
+            data.daily.push({
+                date: document.getElementById(`date_${i}`).value,
+                m1: document.getElementById(`m1_${i}`).value,
+                m2: document.getElementById(`m2_${i}`).value,
+                f1: document.getElementById(`f1_${i}`).value,
+                f2: document.getElementById(`f2_${i}`).value,
+                wt: document.getElementById(`wt_${i}`).value,
+                note: document.getElementById(`note_${i}`).value
+            });
+        }
+
+        document.querySelectorAll('#feedBody tr').forEach(row => {
+            data.feed.push({
+                date: row.cells[0].querySelector('input').value,
+                type: row.cells[1].querySelector('select').value,
+                b1: row.cells[2].querySelector('input').value,
+                b2: row.cells[3].querySelector('input').value
+            });
+        });
+
+        localStorage.setItem('poultryData', JSON.stringify(data));
+    }
+
+    function loadData() {
+        let data = JSON.parse(localStorage.getItem('poultryData'));
+        if (!data) return;
+
+        document.getElementById('initShed1').value = data.settings.initS1;
+        document.getElementById('initShed2').value = data.settings.initS2;
+        document.getElementById('bagWt').value = data.settings.bagWt;
+        totalDays = data.settings.days || 45;
+
+        document.getElementById('dailyBody').innerHTML = '';
+        data.daily.forEach((dayData, index) => {
+            let i = index + 1;
+            appendDailyRowHTML(i);
+            document.getElementById(`date_${i}`).value = dayData.date || '';
+            document.getElementById(`m1_${i}`).value = dayData.m1 || '';
+            document.getElementById(`m2_${i}`).value = dayData.m2 || '';
+            document.getElementById(`f1_${i}`).value = dayData.f1 || '';
+            document.getElementById(`f2_${i}`).value = dayData.f2 || '';
+            document.getElementById(`wt_${i}`).value = dayData.wt || '';
+            document.getElementById(`note_${i}`).value = dayData.note || '';
+        });
+
+        document.getElementById('feedBody').innerHTML = '';
+        if (data.feed.length > 0) {
+            data.feed.forEach(f => addFeedRow(f.date, f.type, f.b1, f.b2));
+        } else {
+            addFeedRow();
+        }
+
+        calculateTable();
+        calcFeed();
+    }
+
+    function clearData() {
+        if(confirm("DANGER: This will permanently wipe all entered data and reset the tracker. Are you absolutely sure?")) {
+            localStorage.removeItem('poultryData');
+            location.reload();
+        }
+    }
+</script>
+
+</body>
+</html>
