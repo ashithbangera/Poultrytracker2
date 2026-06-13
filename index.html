@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Poultry Tracker</title>
@@ -103,6 +102,7 @@
         .btn-outline { background-color: transparent; border: 1px solid var(--secondary); color: var(--secondary); }
         
         .totals-row { background-color: #eaf2f8; font-weight: bold; }
+        .status-row { background-color: #d4e6f1; font-weight: bold; font-size: 14px; }
         .save-indicator { font-size: 14px; color: var(--success); font-weight: bold; margin-right: 15px; }
 
         /* Modal Styles */
@@ -139,6 +139,7 @@
     </div>
 
     <div class="grid-layout">
+        <!-- Left Side: Daily Stock, Mortality, Feed & FCR -->
         <div class="section">
             <h2>Daily Log</h2>
             <div style="overflow-x: auto;">
@@ -160,17 +161,28 @@
                         </tr>
                     </thead>
                     <tbody id="dailyBody">
-                        </tbody>
+                        <!-- Auto-generated -->
+                    </tbody>
                     <tfoot>
+                        <!-- Standard Column Totals -->
                         <tr class="totals-row">
                             <td colspan="2" style="text-align: right; padding-right: 10px;">TOTALS:</td>
                             <td id="tot_m1">0</td>
                             <td id="tot_m2">0</td>
                             <td id="tot_daily">0</td>
-                            <td colspan="2"></td>
+                            <td id="tot_s1_stock">0</td>
+                            <td id="tot_s2_stock">0</td>
                             <td id="tot_f1">0</td>
                             <td id="tot_f2">0</td>
                             <td colspan="3"></td>
+                        </tr>
+                        <!-- Global Flock Summary Bar -->
+                        <tr class="status-row">
+                            <td colspan="12" style="text-align: center; padding: 12px;">
+                                <span style="margin: 0 15px;"><strong>Total Housed Birds:</strong> <span id="tot_housed" style="color:var(--primary); font-size:15px;">0</span></span> | 
+                                <span style="margin: 0 15px;"><strong>Total Birds in Stock:</strong> <span id="tot_in_stock" style="color:var(--success); font-size:15px;">0</span></span> | 
+                                <span style="margin: 0 15px;"><strong>Total Feed Consumed:</strong> <span id="tot_feed_consumed" style="color:var(--danger); font-size:15px;">0</span> Bags (<span id="tot_feed_kg">0</span> kg)</span>
+                            </td>
                         </tr>
                     </tfoot>
                 </table>
@@ -178,6 +190,7 @@
             <button class="btn-outline" style="margin-top: 15px;" onclick="addDailyRow()">+ Add Day</button>
         </div>
 
+        <!-- Right Side: Feed Inventory -->
         <div class="section">
             <h2>Feed Inventory (Arrivals)</h2>
             <table>
@@ -191,7 +204,8 @@
                     </tr>
                 </thead>
                 <tbody id="feedBody">
-                    </tbody>
+                    <!-- Feed rows -->
+                </tbody>
                 <tfoot>
                     <tr class="totals-row">
                         <td colspan="2" style="text-align: right; padding-right: 10px;">NET TOTAL:</td>
@@ -207,11 +221,13 @@
     </div>
 </div>
 
+<!-- Batch Summary Modal -->
 <div class="modal-overlay" id="summaryModal">
     <div class="modal-content">
         <h2>Batch Summary Report</h2>
         <div id="summaryContent">
-            </div>
+            <!-- Populated via JS -->
+        </div>
         <button class="btn-primary" style="margin-top: 20px; width: 100%;" onclick="closeSummary()">Close Report</button>
     </div>
 </div>
@@ -313,8 +329,12 @@
 
     // 2. Core Calculations
     function calculateTable() {
-        let currentS1 = parseInt(document.getElementById('initShed1').value) || 0;
-        let currentS2 = parseInt(document.getElementById('initShed2').value) || 0;
+        let init1 = parseInt(document.getElementById('initShed1').value) || 0;
+        let init2 = parseInt(document.getElementById('initShed2').value) || 0;
+        let currentS1 = init1;
+        let currentS2 = init2;
+        let totalHoused = init1 + init2;
+        
         let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
         
         let totalMortalityS1 = 0, totalMortalityS2 = 0;
@@ -324,14 +344,20 @@
         for (let i = 1; i <= totalDays; i++) {
             if(!document.getElementById(`m1_${i}`)) continue; 
 
-            // Mortality
-            let m1 = parseInt(document.getElementById(`m1_${i}`).value) || 0;
-            let m2 = parseInt(document.getElementById(`m2_${i}`).value) || 0;
+            // Mortality Logic
+            let m1Input = document.getElementById(`m1_${i}`).value;
+            let m2Input = document.getElementById(`m2_${i}`).value;
             
-            if (document.getElementById(`m1_${i}`).value !== '' || document.getElementById(`m2_${i}`).value !== '') {
-                totalMortalityS1 += m1; totalMortalityS2 += m2;
+            if (m1Input !== '' || m2Input !== '') {
+                let m1 = parseInt(m1Input) || 0;
+                let m2 = parseInt(m2Input) || 0;
+                
+                totalMortalityS1 += m1; 
+                totalMortalityS2 += m2;
                 document.getElementById(`dtot_${i}`).value = m1 + m2;
-                currentS1 -= m1; currentS2 -= m2;
+                
+                currentS1 -= m1; 
+                currentS2 -= m2;
                 document.getElementById(`s1_${i}`).value = currentS1;
                 document.getElementById(`s2_${i}`).value = currentS2;
             } else {
@@ -340,13 +366,14 @@
                 document.getElementById(`s2_${i}`).value = '';
             }
 
-            // Feed Consumption
+            // Feed Consumption Logic (This is strictly what drives FCR)
             let f1 = parseFloat(document.getElementById(`f1_${i}`).value) || 0;
             let f2 = parseFloat(document.getElementById(`f2_${i}`).value) || 0;
-            totalFeedS1 += f1; totalFeedS2 += f2;
+            totalFeedS1 += f1; 
+            totalFeedS2 += f2;
             cumulativeFeedBags += (f1 + f2);
 
-            // FCR Calculation
+            // FCR Calculation (Total Consumed Feed Kg / Total Live Flock Weight Kg)
             let wt = parseFloat(document.getElementById(`wt_${i}`).value) || 0;
             let liveStock = currentS1 + currentS2;
             let fcrField = document.getElementById(`fcr_${i}`);
@@ -360,12 +387,22 @@
             }
         }
 
-        // Totals update
+        // --- Column Totals Update ---
         document.getElementById('tot_m1').innerText = totalMortalityS1;
         document.getElementById('tot_m2').innerText = totalMortalityS2;
         document.getElementById('tot_daily').innerText = totalMortalityS1 + totalMortalityS2;
+        document.getElementById('tot_s1_stock').innerText = currentS1;
+        document.getElementById('tot_s2_stock').innerText = currentS2;
         document.getElementById('tot_f1').innerText = parseFloat(totalFeedS1.toFixed(2));
         document.getElementById('tot_f2').innerText = parseFloat(totalFeedS2.toFixed(2));
+
+        // --- Global Flock Summary Bar Update ---
+        document.getElementById('tot_housed').innerText = totalHoused;
+        document.getElementById('tot_in_stock').innerText = (currentS1 + currentS2);
+        
+        let totalConsumedBags = parseFloat((totalFeedS1 + totalFeedS2).toFixed(2));
+        document.getElementById('tot_feed_consumed').innerText = totalConsumedBags;
+        document.getElementById('tot_feed_kg').innerText = (totalConsumedBags * bagWt).toFixed(2);
     }
 
     // 3. Feed Arrivals Logic
@@ -401,10 +438,8 @@
             let b1 = parseFloat(row.cells[2].querySelector('input').value) || 0;
             let b2 = parseFloat(row.cells[3].querySelector('input').value) || 0;
             
-            // Row total
             row.cells[4].querySelector('input').value = parseFloat((b1 + b2).toFixed(2));
 
-            // Return feed is strictly deleted/deducted from totals. All other types (including Old feed) are added.
             if (type === 'Return Feed') { 
                 grandS1 -= b1; 
                 grandS2 -= b2; 
@@ -431,9 +466,8 @@
         let surviving = totalInit - totMor;
         let survivalPercent = totalInit > 0 ? ((surviving / totalInit) * 100).toFixed(2) : 0;
 
-        let totalFeedBags = (parseFloat(document.getElementById('tot_f1').innerText) || 0) + (parseFloat(document.getElementById('tot_f2').innerText) || 0);
-        let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
-        let totalFeedKg = totalFeedBags * bagWt;
+        let totalFeedBags = parseFloat(document.getElementById('tot_feed_consumed').innerText) || 0;
+        let totalFeedKg = parseFloat(document.getElementById('tot_feed_kg').innerText) || 0;
 
         let finalFCR = "N/A";
         let finalWt = "N/A";
@@ -447,10 +481,10 @@
         }
 
         document.getElementById('summaryContent').innerHTML = `
-            <div class="summary-stat"><span>Initial Stock</span> <strong>${totalInit} birds</strong></div>
+            <div class="summary-stat"><span>Total Housed Birds</span> <strong>${totalInit} birds</strong></div>
             <div class="summary-stat"><span>Total Mortality</span> <strong>${totMor} birds (${morPercent}%)</strong></div>
-            <div class="summary-stat"><span>Surviving Birds</span> <strong>${surviving} birds (${survivalPercent}%)</strong></div>
-            <div class="summary-stat" style="margin-top: 15px;"><span>Feed Consumed</span> <strong>${totalFeedBags} bags (${totalFeedKg.toLocaleString()} kg)</strong></div>
+            <div class="summary-stat"><span>Surviving Birds in Stock</span> <strong>${surviving} birds (${survivalPercent}%)</strong></div>
+            <div class="summary-stat" style="margin-top: 15px;"><span>Total Feed Consumed</span> <strong>${totalFeedBags} bags (${totalFeedKg.toLocaleString()} kg)</strong></div>
             <div class="summary-stat"><span>Final Avg Weight</span> <strong>${finalWt}</strong></div>
             <div class="summary-stat" style="background: #eaf2f8; padding: 10px; margin-top: 15px; border-radius: 4px;">
                 <span><strong>Batch Final FCR</strong></span> <strong style="font-size: 18px;">${finalFCR}</strong>
