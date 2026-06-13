@@ -106,7 +106,6 @@
         .status-row { background-color: #d4e6f1; font-weight: bold; font-size: 14px; }
         .save-indicator { font-size: 14px; color: var(--success); font-weight: bold; margin-right: 15px; }
 
-        /* Modal Styles */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;
@@ -127,9 +126,9 @@
         <div>
             <h1>Poultry Tracker</h1>
             <div style="display: flex; gap: 15px; margin-top: 10px;">
-                <label><strong>Bag Wt (kg):</strong> <input type="number" id="bagWt" value="50" style="width:70px;" onchange="calculateTable()"></label>
-                <label><strong>Init S1:</strong> <input type="number" id="initShed1" value="5962" style="width:80px;" onchange="calculateTable()"></label>
-                <label><strong>Init S2:</strong> <input type="number" id="initShed2" value="6316" style="width:80px;" onchange="calculateTable()"></label>
+                <label><strong>Bag Wt (kg):</strong> <input type="number" id="bagWt" value="50" style="width:70px;" oninput="runSync()"></label>
+                <label><strong>Init S1:</strong> <input type="number" id="initShed1" value="5962" style="width:80px;" oninput="runSync()"></label>
+                <label><strong>Init S2:</strong> <input type="number" id="initShed2" value="6316" style="width:80px;" oninput="runSync()"></label>
             </div>
         </div>
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -140,7 +139,7 @@
     </div>
 
     <div class="grid-layout">
-        <!-- Left Side: Daily Stock, Mortality, Feed & FCR -->
+        <!-- Left Side: Daily Stock, Mortality, Feed Consumed & FCR -->
         <div class="section">
             <h2>Daily Log</h2>
             <div style="overflow-x: auto;">
@@ -167,7 +166,7 @@
                     <tfoot>
                         <!-- Standard Column Totals -->
                         <tr class="totals-row">
-                            <td colspan="2" style="text-align: right; padding-right: 10px;">TOTALS:</td>
+                            <td colspan="2" style="text-align: right; padding-right: 10px;">COLUMN TOTALS:</td>
                             <td id="tot_m1">0</td>
                             <td id="tot_m2">0</td>
                             <td id="tot_daily">0</td>
@@ -191,7 +190,7 @@
             <button class="btn-outline" style="margin-top: 15px;" onclick="addDailyRow()">+ Add Day</button>
         </div>
 
-        <!-- Right Side: Feed Inventory -->
+        <!-- Right Side: Feed Arrivals (Inventory) -->
         <div class="section">
             <h2>Feed Inventory (Arrivals)</h2>
             <table>
@@ -209,15 +208,15 @@
                 </tbody>
                 <tfoot>
                     <tr class="totals-row">
-                        <td colspan="2" style="text-align: right; padding-right: 10px;">NET TOTAL:</td>
+                        <td colspan="2" style="text-align: right; padding-right: 10px;">NET ARRIVALS:</td>
                         <td id="feed_tot_s1">0</td>
                         <td id="feed_tot_s2">0</td>
                         <td id="feed_tot_all">0</td>
                     </tr>
                 </tfoot>
             </table>
-            <button class="btn-success" style="margin-top: 15px;" onclick="addFeedRow()">+ Add Feed Row</button>
-            <p style="font-size: 11px; color: var(--danger); margin-top: 10px;">* Note: "Return Feed" amounts are automatically deleted/deducted from the Net Total.</p>
+            <button class="btn-success" style="margin-top: 15px;" onclick="addFeedRow()">+ Add Arrival Row</button>
+            <p style="font-size: 11px; color: var(--danger); margin-top: 10px;">* Note: "Return Feed" amounts are automatically deleted/deducted from Net Arrivals.</p>
         </div>
     </div>
 </div>
@@ -235,28 +234,23 @@
 
 <script>
     let totalDays = 45; 
+    let saveTimeout = null;
 
-    // Listen to ANY input changes on the entire document to trigger calculations and auto-save
-    document.addEventListener('input', function(e) {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
-            document.getElementById('saveStatus').innerText = "Saving...";
-            
-            if (e.target.closest('#feedBody')) {
-                calcFeed();
-            } else {
-                calculateTable();
-            }
+    // Unified sync function compatible with all Android WebViews
+    function runSync() {
+        document.getElementById('saveStatus').innerText = "Saving...";
+        
+        calculateTable(); // Calculates Daily Log & FCR
+        calcFeed();       // Calculates Inventory
 
-            clearTimeout(window.saveTimeout);
-            window.saveTimeout = setTimeout(() => {
-                saveData();
-                document.getElementById('saveStatus').innerText = "🟢 All changes saved";
-            }, 500);
-        }
-    });
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(function() {
+            saveData();
+            document.getElementById('saveStatus').innerText = "🟢 All changes saved";
+        }, 500);
+    }
 
-    // 1. Initialization
-    window.onload = () => {
+    window.onload = function() {
         if (localStorage.getItem('poultryData')) {
             loadData();
         } else {
@@ -278,23 +272,23 @@
 
     function appendDailyRowHTML(i) {
         const tbody = document.getElementById('dailyBody');
-        let dateInput = i === 1 ? `<input type="date" id="date_1" onchange="autoFillDates()">` : `<input type="date" id="date_${i}">`;
+        let dateInput = i === 1 ? `<input type="date" id="date_1" oninput="autoFillDates(); runSync();">` : `<input type="date" id="date_${i}" oninput="runSync()">`;
         
         const tr = document.createElement('tr');
-        tr.id = `row_${i}`;
+        tr.id = 'row_' + i;
         tr.innerHTML = `
             <td><strong>${i}</strong></td>
             <td>${dateInput}</td>
-            <td><input type="number" id="m1_${i}"></td>
-            <td><input type="number" id="m2_${i}"></td>
+            <td><input type="number" id="m1_${i}" oninput="runSync()"></td>
+            <td><input type="number" id="m2_${i}" oninput="runSync()"></td>
             <td><input type="text" id="dtot_${i}" readonly></td>
             <td><input type="text" id="s1_${i}" readonly></td>
             <td><input type="text" id="s2_${i}" readonly></td>
-            <td><input type="number" step="any" id="f1_${i}"></td>
-            <td><input type="number" step="any" id="f2_${i}"></td>
-            <td><input type="number" step="any" id="wt_${i}"></td>
+            <td><input type="number" step="any" id="f1_${i}" oninput="runSync()"></td>
+            <td><input type="number" step="any" id="f2_${i}" oninput="runSync()"></td>
+            <td><input type="number" step="any" id="wt_${i}" oninput="runSync()"></td>
             <td><input type="text" id="fcr_${i}" readonly></td>
-            <td><input type="text" id="note_${i}"></td>
+            <td><input type="text" id="note_${i}" oninput="runSync()"></td>
         `;
         tbody.appendChild(tr);
     }
@@ -303,11 +297,9 @@
         totalDays++;
         appendDailyRowHTML(totalDays);
         autoFillDates(); 
-        calculateTable();
-        saveData();
+        runSync();
     }
 
-    // Auto-fill dates based on Day 1
     function autoFillDates() {
         const day1Val = document.getElementById('date_1').value;
         if (!day1Val) return;
@@ -320,15 +312,18 @@
         for (let i = 2; i <= totalDays; i++) {
             const nextDate = new Date(year, month, day + (i - 1));
             const yyyy = nextDate.getFullYear();
-            const mm = String(nextDate.getMonth() + 1).padStart(2, '0');
-            const dd = String(nextDate.getDate()).padStart(2, '0');
             
-            let target = document.getElementById(`date_${i}`);
-            if(target) target.value = `${yyyy}-${mm}-${dd}`;
+            let mm = (nextDate.getMonth() + 1).toString();
+            if (mm.length < 2) mm = "0" + mm;
+            
+            let dd = nextDate.getDate().toString();
+            if (dd.length < 2) dd = "0" + dd;
+            
+            let target = document.getElementById('date_' + i);
+            if(target) target.value = yyyy + "-" + mm + "-" + dd;
         }
     }
 
-    // 2. Core Calculations
     function calculateTable() {
         let init1 = parseInt(document.getElementById('initShed1').value) || 0;
         let init2 = parseInt(document.getElementById('initShed2').value) || 0;
@@ -339,15 +334,15 @@
         let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
         
         let totalMortalityS1 = 0, totalMortalityS2 = 0;
-        let totalFeedS1 = 0, totalFeedS2 = 0;
+        let consumedFeedS1 = 0, consumedFeedS2 = 0;
         let cumulativeFeedBags = 0;
 
         for (let i = 1; i <= totalDays; i++) {
-            if(!document.getElementById(`m1_${i}`)) continue; 
+            if(!document.getElementById('m1_' + i)) continue; 
 
             // Mortality Logic
-            let m1Input = document.getElementById(`m1_${i}`).value;
-            let m2Input = document.getElementById(`m2_${i}`).value;
+            let m1Input = document.getElementById('m1_' + i).value;
+            let m2Input = document.getElementById('m2_' + i).value;
             
             if (m1Input !== '' || m2Input !== '') {
                 let m1 = parseInt(m1Input) || 0;
@@ -355,29 +350,30 @@
                 
                 totalMortalityS1 += m1; 
                 totalMortalityS2 += m2;
-                document.getElementById(`dtot_${i}`).value = m1 + m2;
+                document.getElementById('dtot_' + i).value = m1 + m2;
                 
                 currentS1 -= m1; 
                 currentS2 -= m2;
-                document.getElementById(`s1_${i}`).value = currentS1;
-                document.getElementById(`s2_${i}`).value = currentS2;
+                document.getElementById('s1_' + i).value = currentS1;
+                document.getElementById('s2_' + i).value = currentS2;
             } else {
-                document.getElementById(`dtot_${i}`).value = '';
-                document.getElementById(`s1_${i}`).value = '';
-                document.getElementById(`s2_${i}`).value = '';
+                document.getElementById('dtot_' + i).value = '';
+                document.getElementById('s1_' + i).value = '';
+                document.getElementById('s2_' + i).value = '';
             }
 
-            // Feed Consumption Logic (This is strictly what drives FCR)
-            let f1 = parseFloat(document.getElementById(`f1_${i}`).value) || 0;
-            let f2 = parseFloat(document.getElementById(`f2_${i}`).value) || 0;
-            totalFeedS1 += f1; 
-            totalFeedS2 += f2;
+            // Feed Consumption Logic (Strictly sums from daily f1 and f2 inputs)
+            let f1 = parseFloat(document.getElementById('f1_' + i).value) || 0;
+            let f2 = parseFloat(document.getElementById('f2_' + i).value) || 0;
+            
+            consumedFeedS1 += f1; 
+            consumedFeedS2 += f2;
             cumulativeFeedBags += (f1 + f2);
 
-            // FCR Calculation (Total Consumed Feed Kg / Total Live Flock Weight Kg)
-            let wt = parseFloat(document.getElementById(`wt_${i}`).value) || 0;
+            // Daily FCR Calculation
+            let wt = parseFloat(document.getElementById('wt_' + i).value) || 0;
             let liveStock = currentS1 + currentS2;
-            let fcrField = document.getElementById(`fcr_${i}`);
+            let fcrField = document.getElementById('fcr_' + i);
 
             if (wt > 0 && liveStock > 0 && cumulativeFeedBags > 0) {
                 let totalFeedKg = cumulativeFeedBags * bagWt;
@@ -388,74 +384,83 @@
             }
         }
 
-        // --- Column Totals Update ---
+        // Apply Column Totals
         document.getElementById('tot_m1').innerText = totalMortalityS1;
         document.getElementById('tot_m2').innerText = totalMortalityS2;
         document.getElementById('tot_daily').innerText = totalMortalityS1 + totalMortalityS2;
         document.getElementById('tot_s1_stock').innerText = currentS1;
         document.getElementById('tot_s2_stock').innerText = currentS2;
-        document.getElementById('tot_f1').innerText = parseFloat(totalFeedS1.toFixed(2));
-        document.getElementById('tot_f2').innerText = parseFloat(totalFeedS2.toFixed(2));
+        
+        document.getElementById('tot_f1').innerText = consumedFeedS1.toFixed(2);
+        document.getElementById('tot_f2').innerText = consumedFeedS2.toFixed(2);
 
-        // --- Global Flock Summary Bar Update ---
+        // Apply Global Flock Summary Bar
         document.getElementById('tot_housed').innerText = totalHoused;
         document.getElementById('tot_in_stock').innerText = (currentS1 + currentS2);
         
-        let totalConsumedBags = parseFloat((totalFeedS1 + totalFeedS2).toFixed(2));
-        document.getElementById('tot_feed_consumed').innerText = totalConsumedBags;
+        let totalConsumedBags = consumedFeedS1 + consumedFeedS2;
+        document.getElementById('tot_feed_consumed').innerText = totalConsumedBags.toFixed(2);
         document.getElementById('tot_feed_kg').innerText = (totalConsumedBags * bagWt).toFixed(2);
     }
 
-    // 3. Feed Arrivals Logic
     function addFeedRow(date='', type='', b1='', b2='') {
         const tbody = document.getElementById('feedBody');
         const tr = document.createElement('tr');
+        
+        let selOld = type === 'Old feed' ? 'selected' : '';
+        let selPre = type === 'Pre-Starter' ? 'selected' : '';
+        let selSta = type === 'Starter' ? 'selected' : '';
+        let selFin = type === 'Finisher' ? 'selected' : '';
+        let selRet = type === 'Return Feed' ? 'selected' : '';
+        let selDef = type === '' ? 'selected' : '';
+
         tr.innerHTML = `
-            <td><input type="date" value="${date}"></td>
+            <td><input type="date" value="${date}" oninput="runSync()"></td>
             <td>
-                <select>
-                    <option value="" disabled ${type===''?'selected':''}>Select...</option>
-                    <option value="Old feed" ${type==='Old feed'?'selected':''}>Old feed</option>
-                    <option value="Pre-Starter" ${type==='Pre-Starter'?'selected':''}>Pre-Starter</option>
-                    <option value="Starter" ${type==='Starter'?'selected':''}>Starter</option>
-                    <option value="Finisher" ${type==='Finisher'?'selected':''}>Finisher</option>
-                    <option value="Return Feed" ${type==='Return Feed'?'selected':''}>Return Feed</option>
+                <select onchange="runSync()">
+                    <option value="" disabled ${selDef}>Select...</option>
+                    <option value="Old feed" ${selOld}>Old feed</option>
+                    <option value="Pre-Starter" ${selPre}>Pre-Starter</option>
+                    <option value="Starter" ${selSta}>Starter</option>
+                    <option value="Finisher" ${selFin}>Finisher</option>
+                    <option value="Return Feed" ${selRet}>Return Feed</option>
                 </select>
             </td>
-            <td><input type="number" step="any" value="${b1}"></td>
-            <td><input type="number" step="any" value="${b2}"></td>
+            <td><input type="number" step="any" value="${b1}" oninput="runSync()"></td>
+            <td><input type="number" step="any" value="${b2}" oninput="runSync()"></td>
             <td><input type="text" readonly></td>
         `;
         tbody.appendChild(tr);
-        calcFeed();
+        runSync();
     }
 
     function calcFeed() {
         const rows = document.getElementById('feedBody').querySelectorAll('tr');
-        let grandS1 = 0, grandS2 = 0;
+        let inventoryS1 = 0;
+        let inventoryS2 = 0;
 
-        rows.forEach(row => {
+        for (let j = 0; j < rows.length; j++) {
+            let row = rows[j];
             let type = row.cells[1].querySelector('select').value;
             let b1 = parseFloat(row.cells[2].querySelector('input').value) || 0;
             let b2 = parseFloat(row.cells[3].querySelector('input').value) || 0;
             
-            row.cells[4].querySelector('input').value = parseFloat((b1 + b2).toFixed(2));
+            row.cells[4].querySelector('input').value = (b1 + b2).toFixed(2);
 
             if (type === 'Return Feed') { 
-                grandS1 -= b1; 
-                grandS2 -= b2; 
+                inventoryS1 -= b1; 
+                inventoryS2 -= b2; 
             } else { 
-                grandS1 += b1; 
-                grandS2 += b2; 
+                inventoryS1 += b1; 
+                inventoryS2 += b2; 
             }
-        });
+        }
 
-        document.getElementById('feed_tot_s1').innerText = grandS1.toFixed(2);
-        document.getElementById('feed_tot_s2').innerText = grandS2.toFixed(2);
-        document.getElementById('feed_tot_all').innerText = (grandS1 + grandS2).toFixed(2);
+        document.getElementById('feed_tot_s1').innerText = inventoryS1.toFixed(2);
+        document.getElementById('feed_tot_s2').innerText = inventoryS2.toFixed(2);
+        document.getElementById('feed_tot_all').innerText = (inventoryS1 + inventoryS2).toFixed(2);
     }
 
-    // 4. Batch Summary Report
     function openSummary() {
         let init1 = parseInt(document.getElementById('initShed1').value) || 0;
         let init2 = parseInt(document.getElementById('initShed2').value) || 0;
@@ -468,17 +473,26 @@
         let survivalPercent = totalInit > 0 ? ((surviving / totalInit) * 100).toFixed(2) : 0;
 
         let totalFeedBags = parseFloat(document.getElementById('tot_feed_consumed').innerText) || 0;
-        let totalFeedKg = parseFloat(document.getElementById('tot_feed_kg').innerText) || 0;
+        let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
+        let totalFeedKg = totalFeedBags * bagWt;
 
-        let finalFCR = "N/A";
-        let finalWt = "N/A";
+        let finalWtStr = "N/A";
+        let lastRecordedWeight = 0;
+        
+        // Find the absolute last weight recorded for accurate Batch FCR
         for (let i = totalDays; i >= 1; i--) {
-            let wtVal = document.getElementById(`wt_${i}`)?.value;
-            if (wtVal) {
-                finalWt = wtVal + " kg";
-                finalFCR = document.getElementById(`fcr_${i}`).value || "N/A";
+            let wtElement = document.getElementById('wt_' + i);
+            if (wtElement && parseFloat(wtElement.value) > 0) {
+                lastRecordedWeight = parseFloat(wtElement.value);
+                finalWtStr = lastRecordedWeight + " kg";
                 break;
             }
+        }
+
+        let batchFCR = "N/A";
+        if (lastRecordedWeight > 0 && surviving > 0 && totalFeedKg > 0) {
+            let totalLiveKg = surviving * lastRecordedWeight;
+            batchFCR = (totalFeedKg / totalLiveKg).toFixed(3);
         }
 
         document.getElementById('summaryContent').innerHTML = `
@@ -486,9 +500,9 @@
             <div class="summary-stat"><span>Total Mortality</span> <strong>${totMor} birds (${morPercent}%)</strong></div>
             <div class="summary-stat"><span>Surviving Birds in Stock</span> <strong>${surviving} birds (${survivalPercent}%)</strong></div>
             <div class="summary-stat" style="margin-top: 15px;"><span>Total Feed Consumed</span> <strong>${totalFeedBags} bags (${totalFeedKg.toLocaleString()} kg)</strong></div>
-            <div class="summary-stat"><span>Final Avg Weight</span> <strong>${finalWt}</strong></div>
+            <div class="summary-stat"><span>Final Avg Weight</span> <strong>${finalWtStr}</strong></div>
             <div class="summary-stat" style="background: #eaf2f8; padding: 10px; margin-top: 15px; border-radius: 4px;">
-                <span><strong>Batch Final FCR</strong></span> <strong style="font-size: 18px;">${finalFCR}</strong>
+                <span><strong>Batch Final FCR</strong></span> <strong style="font-size: 18px;">${batchFCR}</strong>
             </div>
         `;
         document.getElementById('summaryModal').style.display = 'flex';
@@ -498,7 +512,6 @@
         document.getElementById('summaryModal').style.display = 'none';
     }
 
-    // 5. Auto-Save & Load System (Local Storage)
     function saveData() {
         let data = {
             settings: {
@@ -512,26 +525,28 @@
         };
 
         for(let i=1; i<=totalDays; i++) {
-            if(!document.getElementById(`m1_${i}`)) continue;
+            if(!document.getElementById('m1_' + i)) continue;
             data.daily.push({
-                date: document.getElementById(`date_${i}`).value,
-                m1: document.getElementById(`m1_${i}`).value,
-                m2: document.getElementById(`m2_${i}`).value,
-                f1: document.getElementById(`f1_${i}`).value,
-                f2: document.getElementById(`f2_${i}`).value,
-                wt: document.getElementById(`wt_${i}`).value,
-                note: document.getElementById(`note_${i}`).value
+                date: document.getElementById('date_' + i).value,
+                m1: document.getElementById('m1_' + i).value,
+                m2: document.getElementById('m2_' + i).value,
+                f1: document.getElementById('f1_' + i).value,
+                f2: document.getElementById('f2_' + i).value,
+                wt: document.getElementById('wt_' + i).value,
+                note: document.getElementById('note_' + i).value
             });
         }
 
-        document.querySelectorAll('#feedBody tr').forEach(row => {
+        let feedRows = document.querySelectorAll('#feedBody tr');
+        for (let j = 0; j < feedRows.length; j++) {
+            let row = feedRows[j];
             data.feed.push({
                 date: row.cells[0].querySelector('input').value,
                 type: row.cells[1].querySelector('select').value,
                 b1: row.cells[2].querySelector('input').value,
                 b2: row.cells[3].querySelector('input').value
             });
-        });
+        }
 
         localStorage.setItem('poultryData', JSON.stringify(data));
     }
@@ -546,27 +561,26 @@
         totalDays = data.settings.days || 45;
 
         document.getElementById('dailyBody').innerHTML = '';
-        data.daily.forEach((dayData, index) => {
+        data.daily.forEach(function(dayData, index) {
             let i = index + 1;
             appendDailyRowHTML(i);
-            document.getElementById(`date_${i}`).value = dayData.date || '';
-            document.getElementById(`m1_${i}`).value = dayData.m1 || '';
-            document.getElementById(`m2_${i}`).value = dayData.m2 || '';
-            document.getElementById(`f1_${i}`).value = dayData.f1 || '';
-            document.getElementById(`f2_${i}`).value = dayData.f2 || '';
-            document.getElementById(`wt_${i}`).value = dayData.wt || '';
-            document.getElementById(`note_${i}`).value = dayData.note || '';
+            document.getElementById('date_' + i).value = dayData.date || '';
+            document.getElementById('m1_' + i).value = dayData.m1 || '';
+            document.getElementById('m2_' + i).value = dayData.m2 || '';
+            document.getElementById('f1_' + i).value = dayData.f1 || '';
+            document.getElementById('f2_' + i).value = dayData.f2 || '';
+            document.getElementById('wt_' + i).value = dayData.wt || '';
+            document.getElementById('note_' + i).value = dayData.note || '';
         });
 
         document.getElementById('feedBody').innerHTML = '';
         if (data.feed.length > 0) {
-            data.feed.forEach(f => addFeedRow(f.date, f.type, f.b1, f.b2));
+            data.feed.forEach(function(f) { addFeedRow(f.date, f.type, f.b1, f.b2); });
         } else {
             addFeedRow();
         }
 
-        calculateTable();
-        calcFeed();
+        runSync();
     }
 
     function clearData() {
