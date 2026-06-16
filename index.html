@@ -20,7 +20,6 @@
             --accent: #2980b9;
             --success: #27ae60;
             --danger: #c0392b;
-            --warning: #f39c12;
             --bg: #f8f9fa;
         }
         body {
@@ -42,12 +41,23 @@
         .header-section {
             border-bottom: 2px solid #eee;
             padding-bottom: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
             gap: 15px;
+        }
+        .actions-bar {
+            background: #fdfefe;
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid #d5dbdb;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
         }
         .grid-layout {
             display: grid;
@@ -110,6 +120,7 @@
         .btn-success { background-color: var(--success); color: white; }
         .btn-danger { background-color: var(--danger); color: white; }
         .btn-outline { background-color: transparent; border: 1px solid var(--secondary); color: var(--secondary); }
+        .btn-dark { background-color: var(--secondary); color: white; }
         
         .totals-row { background-color: #eaf2f8; font-weight: bold; }
         .status-row { background-color: #d4e6f1; font-weight: bold; font-size: 14px; }
@@ -137,7 +148,6 @@
             gap: 10px;
         }
 
-        /* Analytics Chart Container */
         .analytics-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -155,6 +165,16 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.02);
             position: relative;
             height: 300px;
+        }
+
+        /* 🖨️ CSS to make the app look clean on A4 Paper */
+        @media print {
+            body { background: #fff; padding: 0; }
+            .container { box-shadow: none; max-width: 100%; padding: 0; }
+            .btn-primary, .btn-success, .btn-danger, .btn-outline, .btn-dark, .actions-bar, .sync-box { display: none !important; }
+            input, select { border: none !important; background: transparent !important; -webkit-appearance: none; color: black; font-weight: bold; }
+            input::placeholder { color: transparent; }
+            .chart-box { page-break-inside: avoid; }
         }
     </style>
 </head>
@@ -176,9 +196,18 @@
         </div>
         <div style="display: flex; align-items: center; gap: 10px;">
             <span class="save-indicator" id="saveStatus">⚠️ Enter Sync Key to connect</span>
-            <button class="btn-primary" onclick="openSummary()">Generate Batch Summary</button>
-            <button class="btn-danger" onclick="clearData()">Clear Tracker</button>
+            <button class="btn-primary" onclick="openSummary()">Batch Summary</button>
+            <button class="btn-danger" onclick="clearData()">Wipe Data</button>
         </div>
+    </div>
+
+    <div class="actions-bar">
+        <strong>Data & Reports:</strong>
+        <button class="btn-success" onclick="exportCSV()">📄 Export to Excel</button>
+        <button class="btn-outline" onclick="window.print()">🖨️ Print App</button>
+        <div style="flex-grow: 1;"></div> <button class="btn-dark" onclick="downloadBackup()">💾 Save Backup File</button>
+        <button class="btn-dark" onclick="document.getElementById('importFile').click()">📂 Load Backup File</button>
+        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importBackup(event)">
     </div>
 
     <div class="grid-layout">
@@ -230,7 +259,7 @@
         </div>
 
         <div class="section">
-            <h2>Feed Inventory (Arrivals)</h2>
+            <h2>Feed Arrivals</h2>
             <table>
                 <thead>
                     <tr>
@@ -299,7 +328,6 @@
     let cloudRef = null;
     let isSyncingFromCloud = false; 
 
-    // Chart.js Instances
     let healthChartInstance = null;
     let fcrChartInstance = null;
 
@@ -315,9 +343,7 @@
         calcRemaining();
         updateCharts();
 
-        if(cachedKey) {
-            connectToCloud();
-        }
+        if(cachedKey) { connectToCloud(); }
     };
 
     function connectToCloud() {
@@ -366,9 +392,7 @@
         }, 1000); 
     }
 
-    function saveDataToCloud() {
-        if(!cloudRef) return;
-
+    function buildDataObject() {
         let data = {
             settings: {
                 initS1: document.getElementById('initShed1').value,
@@ -403,7 +427,12 @@
                 b2: row.cells[3].querySelector('input').value
             });
         }
+        return data;
+    }
 
+    function saveDataToCloud() {
+        if(!cloudRef) return;
+        let data = buildDataObject();
         cloudRef.set(data).then(() => {
             document.getElementById('saveStatus').innerText = "🟢 All changes synced live";
         }).catch(err => {
@@ -446,6 +475,84 @@
         updateCharts();
     }
 
+    // ==========================================
+    // 💾 EXPORT, BACKUP & RESTORE FUNCTIONS
+    // ==========================================
+    function exportCSV() {
+        let csv = "Day,Date,Mor S1,Mor S2,Total Mor,Stock S1,Stock S2,Feed S1,Feed S2,Avg Wt(kg),FCR,Remarks\n";
+        for (let i = 1; i <= totalDays; i++) {
+            if(!document.getElementById('m1_' + i)) continue;
+            let row = [
+                i,
+                document.getElementById('date_' + i).value,
+                document.getElementById('m1_' + i).value,
+                document.getElementById('m2_' + i).value,
+                document.getElementById('dtot_' + i).value,
+                document.getElementById('s1_' + i).value,
+                document.getElementById('s2_' + i).value,
+                document.getElementById('f1_' + i).value,
+                document.getElementById('f2_' + i).value,
+                document.getElementById('wt_' + i).value,
+                document.getElementById('fcr_' + i).value,
+                `"${document.getElementById('note_' + i).value}"` // Wrap notes in quotes to protect commas
+            ];
+            csv += row.join(",") + "\n";
+        }
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Poultry_Log_Export_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }
+
+    function downloadBackup() {
+        let data = buildDataObject();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Farm_Backup_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }
+
+    function importBackup(event) {
+        let file = event.target.files[0];
+        if(!file) return;
+        
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                let data = JSON.parse(e.target.result);
+                if(data.settings && data.daily) {
+                    if(cloudRef) {
+                        if(confirm("Upload this backup into your current Cloud Sync Key?")) {
+                            cloudRef.set(data);
+                            alert("Backup Restored to Cloud!");
+                        }
+                    } else {
+                        loadCloudData(data);
+                        runSync();
+                        alert("Backup Loaded Locally!");
+                    }
+                } else {
+                    alert("Error: This does not look like a valid Poultry Tracker backup file.");
+                }
+            } catch(err) {
+                alert("Error reading file.");
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = ''; // Reset input
+    }
+
+
+    // ==========================================
+    // ⚙️ UI AND CORE CALCULATIONS
+    // ==========================================
     function generateDailyTable(days) {
         const tbody = document.getElementById('dailyBody');
         tbody.innerHTML = '';
@@ -617,7 +724,7 @@
     }
 
     // ==========================================
-    // 📊 CHART.JS ANALYTICS ENGINE 📊
+    // 📊 CHART.JS ANALYTICS ENGINE
     // ==========================================
     function updateCharts() {
         const labels = [];
@@ -636,18 +743,15 @@
 
             if (m1 !== '' || m2 !== '' || f1 !== '' || f2 !== '') {
                 labels.push("Day " + i);
-                
                 let dayMor = (parseInt(m1) || 0) + (parseInt(m2) || 0);
                 mortalityData.push(dayMor);
-                
                 let dayFeed = (parseFloat(f1) || 0) + (parseFloat(f2) || 0);
                 feedData.push(dayFeed);
-                
                 fcrData.push(parseFloat(fcr) || null);
             }
         }
 
-        // 1. Mortality Chart (Standalone Bar Chart)
+        // 1. Mortality Chart
         const ctxHealth = document.getElementById('healthChart').getContext('2d');
         if (healthChartInstance) healthChartInstance.destroy();
         healthChartInstance = new Chart(ctxHealth, {
@@ -663,18 +767,13 @@
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: { display: true, text: 'Daily Mortality Rate' }
-                },
-                scales: {
-                    y: { beginAtZero: true, title: {display: true, text: 'Mortality Count'} }
-                }
+                responsive: true, maintainAspectRatio: false,
+                plugins: { title: { display: true, text: 'Daily Mortality Rate' } },
+                scales: { y: { beginAtZero: true, title: {display: true, text: 'Mortality Count'} } }
             }
         });
 
-        // 2. Feed Consumption vs FCR Chart (Dual Axis: Bar + Line)
+        // 2. Feed Consumption vs FCR Chart
         const ctxFcr = document.getElementById('fcrChart').getContext('2d');
         if (fcrChartInstance) fcrChartInstance.destroy();
         fcrChartInstance = new Chart(ctxFcr, {
@@ -706,11 +805,8 @@
                 ]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: { display: true, text: 'Feed Consumption vs. FCR Trend' }
-                },
+                responsive: true, maintainAspectRatio: false,
+                plugins: { title: { display: true, text: 'Feed Consumption vs. FCR Trend' } },
                 scales: {
                     y: { type: 'linear', display: true, position: 'left', beginAtZero: true, title: {display: true, text: 'Feed Bags'} },
                     y1: { type: 'linear', display: true, position: 'right', beginAtZero: true, title: {display: true, text: 'FCR Value'}, grid: {drawOnChartArea: false} }
