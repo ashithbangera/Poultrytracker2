@@ -350,7 +350,7 @@
         calculateTable(); 
         calcFeed();       
         calcRemaining();
-        updateCharts(); // Trigger chart update on any typing
+        updateCharts();
 
         if (isSyncingFromCloud) return; 
 
@@ -625,7 +625,6 @@
         const feedData = [];
         const fcrData = [];
 
-        // Scrape data from the daily log inputs
         for (let i = 1; i <= totalDays; i++) {
             if(!document.getElementById('m1_' + i)) continue;
 
@@ -635,7 +634,6 @@
             let f2 = document.getElementById('f2_' + i).value;
             let fcr = document.getElementById('fcr_' + i).value;
 
-            // Only plot days where at least *some* data was entered to keep charts clean
             if (m1 !== '' || m2 !== '' || f1 !== '' || f2 !== '') {
                 labels.push("Day " + i);
                 
@@ -649,30 +647,60 @@
             }
         }
 
-        // 1. Mortality vs Feed Chart (Dual Axis)
+        // 1. Mortality Chart (Standalone Bar Chart)
         const ctxHealth = document.getElementById('healthChart').getContext('2d');
         if (healthChartInstance) healthChartInstance.destroy();
         healthChartInstance = new Chart(ctxHealth, {
             type: 'bar',
             data: {
                 labels: labels,
+                datasets: [{
+                    label: 'Daily Mortality (Birds)',
+                    data: mortalityData,
+                    backgroundColor: 'rgba(192, 57, 43, 0.7)',
+                    borderColor: '#c0392b',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: 'Daily Mortality Rate' }
+                },
+                scales: {
+                    y: { beginAtZero: true, title: {display: true, text: 'Mortality Count'} }
+                }
+            }
+        });
+
+        // 2. Feed Consumption vs FCR Chart (Dual Axis: Bar + Line)
+        const ctxFcr = document.getElementById('fcrChart').getContext('2d');
+        if (fcrChartInstance) fcrChartInstance.destroy();
+        fcrChartInstance = new Chart(ctxFcr, {
+            type: 'line', 
+            data: {
+                labels: labels,
                 datasets: [
                     {
-                        label: 'Daily Mortality (Birds)',
-                        data: mortalityData,
-                        backgroundColor: 'rgba(192, 57, 43, 0.7)',
-                        borderColor: '#c0392b',
+                        type: 'bar',
+                        label: 'Daily Feed Consumed (Bags)',
+                        data: feedData,
+                        backgroundColor: 'rgba(41, 128, 185, 0.7)',
+                        borderColor: '#2980b9',
                         borderWidth: 1,
                         yAxisID: 'y'
                     },
                     {
-                        label: 'Daily Feed (Bags)',
-                        data: feedData,
                         type: 'line',
-                        borderColor: '#2980b9',
-                        backgroundColor: '#2980b9',
+                        label: 'Cumulative FCR Trend',
+                        data: fcrData,
+                        borderColor: '#27ae60',
+                        backgroundColor: 'rgba(39, 174, 96, 0.2)',
                         borderWidth: 3,
-                        tension: 0.3,
+                        fill: true,
+                        tension: 0.2,
+                        pointRadius: 4,
                         yAxisID: 'y1'
                     }
                 ]
@@ -681,41 +709,11 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    title: { display: true, text: 'Flock Health: Mortality vs. Feed Intake' }
+                    title: { display: true, text: 'Feed Consumption vs. FCR Trend' }
                 },
                 scales: {
-                    y: { type: 'linear', display: true, position: 'left', title: {display: true, text: 'Mortality Count'} },
-                    y1: { type: 'linear', display: true, position: 'right', title: {display: true, text: 'Feed Bags'}, grid: {drawOnChartArea: false} }
-                }
-            }
-        });
-
-        // 2. Cumulative FCR Chart
-        const ctxFcr = document.getElementById('fcrChart').getContext('2d');
-        if (fcrChartInstance) fcrChartInstance.destroy();
-        fcrChartInstance = new Chart(ctxFcr, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Cumulative FCR',
-                    data: fcrData,
-                    borderColor: '#27ae60',
-                    backgroundColor: 'rgba(39, 174, 96, 0.2)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.2,
-                    pointRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    title: { display: true, text: 'Feed Conversion Ratio (FCR) Trend' }
-                },
-                scales: {
-                    y: { title: {display: true, text: 'FCR Value'}, min: 0 }
+                    y: { type: 'linear', display: true, position: 'left', beginAtZero: true, title: {display: true, text: 'Feed Bags'} },
+                    y1: { type: 'linear', display: true, position: 'right', beginAtZero: true, title: {display: true, text: 'FCR Value'}, grid: {drawOnChartArea: false} }
                 }
             }
         });
