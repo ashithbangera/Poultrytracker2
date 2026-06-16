@@ -4,12 +4,14 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Poultry Tracker (Cloud Sync)</title>
+    <title>Smart Poultry Tracker (Analytics + Cloud Sync)</title>
     
-   
+    
 
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         :root {
@@ -18,6 +20,7 @@
             --accent: #2980b9;
             --success: #27ae60;
             --danger: #c0392b;
+            --warning: #f39c12;
             --bg: #f8f9fa;
         }
         body {
@@ -133,6 +136,26 @@
             align-items: center;
             gap: 10px;
         }
+
+        /* Analytics Chart Container */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        @media (max-width: 900px) {
+            .analytics-grid { grid-template-columns: 1fr; }
+        }
+        .chart-box {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            position: relative;
+            height: 300px;
+        }
     </style>
 </head>
 <body>
@@ -231,6 +254,18 @@
             <button class="btn-success" style="margin-top: 15px;" onclick="addFeedRow()">+ Add Arrival Row</button>
         </div>
     </div>
+
+    <div class="section" style="margin-top: 20px;">
+        <h2>📊 Analytics Dashboard</h2>
+        <div class="analytics-grid">
+            <div class="chart-box">
+                <canvas id="healthChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <canvas id="fcrChart"></canvas>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="modal-overlay" id="summaryModal">
@@ -255,7 +290,6 @@
         appId: "1:641582598857:web:263050e6cea1f563961b18"
     };
 
-    // Initialize Firebase Global Instances
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
@@ -265,19 +299,22 @@
     let cloudRef = null;
     let isSyncingFromCloud = false; 
 
+    // Chart.js Instances
+    let healthChartInstance = null;
+    let fcrChartInstance = null;
+
     window.onload = function() {
         let cachedKey = localStorage.getItem('poultrySyncKey') || '';
         document.getElementById('syncKey').value = cachedKey;
         
-        // BUG FIX: ALWAYS generate the 45-day blank slate immediately on load so the screen isn't empty.
         generateDailyTable(45);
         document.getElementById('feedBody').innerHTML = '';
         addFeedRow();
         calculateTable();
         calcFeed();
         calcRemaining();
+        updateCharts();
 
-        // If a key was remembered, attempt to connect to the cloud
         if(cachedKey) {
             connectToCloud();
         }
@@ -297,15 +334,12 @@
 
         cloudRef.on('value', function(snapshot) {
             const data = snapshot.val();
-            // If cloud has data, download it and overwrite our blank screen
             if (data && data.daily) {
                 isSyncingFromCloud = true; 
                 loadCloudData(data);
                 isSyncingFromCloud = false; 
                 document.getElementById('saveStatus').innerText = "🟢 Live Sync Active";
-            } 
-            // If cloud is empty (New Key), safely upload our new 45-day blank slate
-            else {
+            } else {
                 document.getElementById('saveStatus').innerText = "🟢 New Key Created (Cloud Empty)";
                 runSync();
             }
@@ -315,7 +349,8 @@
     function runSync() {
         calculateTable(); 
         calcFeed();       
-        calcRemaining();  
+        calcRemaining();
+        updateCharts(); // Trigger chart update on any typing
 
         if (isSyncingFromCloud) return; 
 
@@ -408,6 +443,7 @@
         calculateTable();
         calcFeed();
         calcRemaining();
+        updateCharts();
     }
 
     function generateDailyTable(days) {
@@ -578,6 +614,111 @@
         let remainingBags = totalArrivals - totalConsumed;
         document.getElementById('tot_feed_remaining').innerText = remainingBags.toFixed(2);
         document.getElementById('tot_feed_remaining_kg').innerText = (remainingBags * bagWt).toFixed(2);
+    }
+
+    // ==========================================
+    // 📊 CHART.JS ANALYTICS ENGINE 📊
+    // ==========================================
+    function updateCharts() {
+        const labels = [];
+        const mortalityData = [];
+        const feedData = [];
+        const fcrData = [];
+
+        // Scrape data from the daily log inputs
+        for (let i = 1; i <= totalDays; i++) {
+            if(!document.getElementById('m1_' + i)) continue;
+
+            let m1 = document.getElementById('m1_' + i).value;
+            let m2 = document.getElementById('m2_' + i).value;
+            let f1 = document.getElementById('f1_' + i).value;
+            let f2 = document.getElementById('f2_' + i).value;
+            let fcr = document.getElementById('fcr_' + i).value;
+
+            // Only plot days where at least *some* data was entered to keep charts clean
+            if (m1 !== '' || m2 !== '' || f1 !== '' || f2 !== '') {
+                labels.push("Day " + i);
+                
+                let dayMor = (parseInt(m1) || 0) + (parseInt(m2) || 0);
+                mortalityData.push(dayMor);
+                
+                let dayFeed = (parseFloat(f1) || 0) + (parseFloat(f2) || 0);
+                feedData.push(dayFeed);
+                
+                fcrData.push(parseFloat(fcr) || null);
+            }
+        }
+
+        // 1. Mortality vs Feed Chart (Dual Axis)
+        const ctxHealth = document.getElementById('healthChart').getContext('2d');
+        if (healthChartInstance) healthChartInstance.destroy();
+        healthChartInstance = new Chart(ctxHealth, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Daily Mortality (Birds)',
+                        data: mortalityData,
+                        backgroundColor: 'rgba(192, 57, 43, 0.7)',
+                        borderColor: '#c0392b',
+                        borderWidth: 1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Daily Feed (Bags)',
+                        data: feedData,
+                        type: 'line',
+                        borderColor: '#2980b9',
+                        backgroundColor: '#2980b9',
+                        borderWidth: 3,
+                        tension: 0.3,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: 'Flock Health: Mortality vs. Feed Intake' }
+                },
+                scales: {
+                    y: { type: 'linear', display: true, position: 'left', title: {display: true, text: 'Mortality Count'} },
+                    y1: { type: 'linear', display: true, position: 'right', title: {display: true, text: 'Feed Bags'}, grid: {drawOnChartArea: false} }
+                }
+            }
+        });
+
+        // 2. Cumulative FCR Chart
+        const ctxFcr = document.getElementById('fcrChart').getContext('2d');
+        if (fcrChartInstance) fcrChartInstance.destroy();
+        fcrChartInstance = new Chart(ctxFcr, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Cumulative FCR',
+                    data: fcrData,
+                    borderColor: '#27ae60',
+                    backgroundColor: 'rgba(39, 174, 96, 0.2)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.2,
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: 'Feed Conversion Ratio (FCR) Trend' }
+                },
+                scales: {
+                    y: { title: {display: true, text: 'FCR Value'}, min: 0 }
+                }
+            }
+        });
     }
 
     function openSummary() {
