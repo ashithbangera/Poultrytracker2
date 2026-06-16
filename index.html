@@ -4,7 +4,10 @@
     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Poultry Tracker</title>
+    <title>Smart Poultry Tracker (Cloud Sync)</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    
     <style>
         :root {
             --primary: #2c3e50;
@@ -117,6 +120,16 @@
         .modal-content h2 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         .summary-stat { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #ddd; font-size: 15px; }
         .summary-stat strong { color: var(--primary); }
+        
+        .sync-box {
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            padding: 8px;
+            border-radius: 5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
@@ -124,15 +137,19 @@
 <div class="container">
     <div class="header-section">
         <div>
-            <h1>Poultry Tracker</h1>
-            <div style="display: flex; gap: 15px; margin-top: 10px;">
-                <label><strong>Bag Wt (kg):</strong> <input type="number" id="bagWt" value="50" style="width:70px;" oninput="runSync()"></label>
-                <label><strong>Init S1:</strong> <input type="number" id="initShed1" value="5962" style="width:80px;" oninput="runSync()"></label>
-                <label><strong>Init S2:</strong> <input type="number" id="initShed2" value="6316" style="width:80px;" oninput="runSync()"></label>
+            <h1>Poultry Tracker ☁️</h1>
+            <div style="display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap; align-items: center;">
+                <div class="sync-box">
+                    <label><strong>🔑 Farm Sync Key:</strong> 
+                    <input type="text" id="syncKey" placeholder="e.g., MyFarm2026" style="width:140px;" onchange="connectToCloud()"></label>
+                </div>
+                <label><strong>Bag Wt (kg):</strong> <input type="number" id="bagWt" value="50" style="width:60px;" oninput="runSync()"></label>
+                <label><strong>Init S1:</strong> <input type="number" id="initShed1" value="5962" style="width:75px;" oninput="runSync()"></label>
+                <label><strong>Init S2:</strong> <input type="number" id="initShed2" value="6316" style="width:75px;" oninput="runSync()"></label>
             </div>
         </div>
         <div style="display: flex; align-items: center; gap: 10px;">
-            <span class="save-indicator" id="saveStatus">🟢 All changes saved</span>
+            <span class="save-indicator" id="saveStatus">⚠️ Enter Sync Key to connect</span>
             <button class="btn-primary" onclick="openSummary()">Generate Batch Summary</button>
             <button class="btn-danger" onclick="clearData()">Clear Tracker</button>
         </div>
@@ -159,8 +176,7 @@
                             <th style="width: 20%">Remarks</th>
                         </tr>
                     </thead>
-                    <tbody id="dailyBody">
-                        </tbody>
+                    <tbody id="dailyBody"></tbody>
                     <tfoot>
                         <tr class="totals-row">
                             <td colspan="2" style="text-align: right; padding-right: 10px;">COLUMN TOTALS:</td>
@@ -175,10 +191,10 @@
                         </tr>
                         <tr class="status-row">
                             <td colspan="12" style="text-align: center; padding: 12px; line-height: 1.8;">
-                                <span style="margin: 0 10px;"><strong>Housed Birds:</strong> <span id="tot_housed" style="color:var(--primary); font-size:15px;">0</span></span> | 
-                                <span style="margin: 0 10px;"><strong>In Stock:</strong> <span id="tot_in_stock" style="color:var(--success); font-size:15px;">0</span></span> | 
-                                <span style="margin: 0 10px;"><strong>Feed Consumed:</strong> <span id="tot_feed_consumed" style="color:var(--danger); font-size:15px;">0</span> Bags (<span id="tot_feed_kg">0</span> kg)</span> | 
-                                <span style="margin: 0 10px;"><strong>Feed Remaining:</strong> <span id="tot_feed_remaining" style="color:var(--accent); font-size:15px;">0</span> Bags (<span id="tot_feed_remaining_kg">0</span> kg)</span>
+                                <span style="margin: 0 10px;"><strong>Housed Birds:</strong> <span id="tot_housed">0</span></span> | 
+                                <span style="margin: 0 10px;"><strong>In Stock:</strong> <span id="tot_in_stock">0</span></span> | 
+                                <span style="margin: 0 10px;"><strong>Feed Consumed:</strong> <span id="tot_feed_consumed">0</span> Bags (<span id="tot_feed_kg">0</span> kg)</span> | 
+                                <span style="margin: 0 10px;"><strong>Feed Remaining:</strong> <span id="tot_feed_remaining">0</span> Bags (<span id="tot_feed_remaining_kg">0</span> kg)</span>
                             </td>
                         </tr>
                     </tfoot>
@@ -199,8 +215,7 @@
                         <th style="width: 16%">Total</th>
                     </tr>
                 </thead>
-                <tbody id="feedBody">
-                    </tbody>
+                <tbody id="feedBody"></tbody>
                 <tfoot>
                     <tr class="totals-row">
                         <td colspan="2" style="text-align: right; padding-right: 10px;">NET ARRIVALS:</td>
@@ -211,7 +226,6 @@
                 </tfoot>
             </table>
             <button class="btn-success" style="margin-top: 15px;" onclick="addFeedRow()">+ Add Arrival Row</button>
-            <p style="font-size: 11px; color: var(--danger); margin-top: 10px;">* Note: "Return Feed" amounts are automatically deleted/deducted from Net Arrivals.</p>
         </div>
     </div>
 </div>
@@ -219,47 +233,195 @@
 <div class="modal-overlay" id="summaryModal">
     <div class="modal-content">
         <h2>Batch Summary Report</h2>
-        <div id="summaryContent">
-            </div>
+        <div id="summaryContent"></div>
         <button class="btn-primary" style="margin-top: 20px; width: 100%;" onclick="closeSummary()">Close Report</button>
     </div>
 </div>
 
 <script>
-    let totalDays = 45; 
-    let saveTimeout = null;
+    // ==========================================
+    // ⚠️ PASTE YOUR FIREBASE CONFIGURATION HERE ⚠️
+    // ==========================================
+    // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-    // Unified sync function compatible with all Android WebViews
-    function runSync() {
-        document.getElementById('saveStatus').innerText = "Saving...";
-        
-        calculateTable(); // Calculates Daily Log & FCR
-        calcFeed();       // Calculates Inventory
-        calcRemaining();  // Calculates Remaining Inventory
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyB9UXdBlmPi7MTC388W2D4353TqOvr98i8",
+  authDomain: "poultry-tracker-181c7.firebaseapp.com",
+  projectId: "poultry-tracker-181c7",
+  storageBucket: "poultry-tracker-181c7.firebasestorage.app",
+  messagingSenderId: "641582598857",
+  appId: "1:641582598857:web:263050e6cea1f563961b18"
+};
 
-        clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(function() {
-            saveData();
-            document.getElementById('saveStatus').innerText = "🟢 All changes saved";
-        }, 500);
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+    // Initialize Firebase Global Instances
+    if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+        firebase.initializeApp(firebaseConfig);
     }
 
+    let totalDays = 45; 
+    let saveTimeout = null;
+    let cloudRef = null;
+    let isSyncingFromCloud = false; // Flag to stop circular loops
+
     window.onload = function() {
-        if (localStorage.getItem('poultryData')) {
-            loadData();
+        // Retrieve local backup key if it exists to ease entry
+        let cachedKey = localStorage.getItem('poultrySyncKey') || '';
+        if(cachedKey) {
+            document.getElementById('syncKey').value = cachedKey;
+            connectToCloud();
         } else {
             generateDailyTable(45);
             addFeedRow();
-            runSync();
+            calculateTable();
+            calcFeed();
+            calcRemaining();
         }
     };
+
+    function connectToCloud() {
+        const key = document.getElementById('syncKey').value.trim().replace(/[^a-zA-Z0-9-_]/g, '');
+        if(!key) {
+            document.getElementById('saveStatus').innerText = "⚠️ Enter Sync Key to connect";
+            return;
+        }
+        
+        localStorage.setItem('poultrySyncKey', key);
+        document.getElementById('saveStatus').innerText = "☁️ Connecting to cloud...";
+
+        if(firebase.apps.length === 0) {
+            alert("Firebase config is missing configuration variables. Please add your credentials inside line 185.");
+            return;
+        }
+
+        // Connect directly to a distinct route inside the cloud database matching the key
+        cloudRef = firebase.database().ref('poultry_tracker_farms/' + key);
+
+        // Set up real-time live downstream sync hook
+        cloudRef.on('value', function(snapshot) {
+            const data = snapshot.val();
+            if (data) {
+                isSyncingFromCloud = true; // Turn safety flag ON
+                loadCloudData(data);
+                isSyncingFromCloud = false; // Turn safety flag OFF
+                document.getElementById('saveStatus').innerText = "🟢 Live Sync Active";
+            } else {
+                document.getElementById('saveStatus').innerText = "🟢 New Key Created (Cloud Empty)";
+            }
+        });
+    }
+
+    function runSync() {
+        // Local Calculations
+        calculateTable(); 
+        calcFeed();       
+        calcRemaining();  
+
+        // If changes were made by incoming cloud stream, do not push back out to prevent bounce loop
+        if (isSyncingFromCloud) return; 
+
+        if (!cloudRef) {
+            document.getElementById('saveStatus').innerText = "💾 Local Only (Set Key for Cloud)";
+            return;
+        }
+
+        document.getElementById('saveStatus').innerText = "⏳ Uploading changes...";
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(function() {
+            saveDataToCloud();
+        }, 1000); // 1-second delay so typing doesn't spam the network database
+    }
+
+    function saveDataToCloud() {
+        if(!cloudRef) return;
+
+        let data = {
+            settings: {
+                initS1: document.getElementById('initShed1').value,
+                initS2: document.getElementById('initShed2').value,
+                bagWt: document.getElementById('bagWt').value,
+                days: totalDays
+            },
+            daily: [],
+            feed: []
+        };
+
+        for(let i=1; i<=totalDays; i++) {
+            if(!document.getElementById('m1_' + i)) continue;
+            data.daily.push({
+                date: document.getElementById('date_' + i).value,
+                m1: document.getElementById('m1_' + i).value,
+                m2: document.getElementById('m2_' + i).value,
+                f1: document.getElementById('f1_' + i).value,
+                f2: document.getElementById('f2_' + i).value,
+                wt: document.getElementById('wt_' + i).value,
+                note: document.getElementById('note_' + i).value
+            });
+        }
+
+        let feedRows = document.querySelectorAll('#feedBody tr');
+        for (let j = 0; j < feedRows.length; j++) {
+            let row = feedRows[j];
+            data.feed.push({
+                date: row.cells[0].querySelector('input').value,
+                type: row.cells[1].querySelector('select').value,
+                b1: row.cells[2].querySelector('input').value,
+                b2: row.cells[3].querySelector('input').value
+            });
+        }
+
+        cloudRef.set(data).then(() => {
+            document.getElementById('saveStatus').innerText = "🟢 All changes synced live";
+        }).catch(err => {
+            document.getElementById('saveStatus').innerText = "❌ Database Sync Error";
+            console.error(err);
+        });
+    }
+
+    function loadCloudData(data) {
+        if (!data) return;
+
+        document.getElementById('initShed1').value = data.settings.initS1;
+        document.getElementById('initShed2').value = data.settings.initS2;
+        document.getElementById('bagWt').value = data.settings.bagWt;
+        totalDays = data.settings.days || 45;
+
+        document.getElementById('dailyBody').innerHTML = '';
+        data.daily.forEach(function(dayData, index) {
+            let i = index + 1;
+            appendDailyRowHTML(i);
+            document.getElementById('date_' + i).value = dayData.date || '';
+            document.getElementById('m1_' + i).value = dayData.m1 || '';
+            document.getElementById('m2_' + i).value = dayData.m2 || '';
+            document.getElementById('f1_' + i).value = dayData.f1 || '';
+            document.getElementById('f2_' + i).value = dayData.f2 || '';
+            document.getElementById('wt_' + i).value = dayData.wt || '';
+            document.getElementById('note_' + i).value = dayData.note || '';
+        });
+
+        document.getElementById('feedBody').innerHTML = '';
+        if (data.feed && data.feed.length > 0) {
+            data.feed.forEach(function(f) { addFeedRow(f.date, f.type, f.b1, f.b2); });
+        } else {
+            addFeedRow();
+        }
+
+        // Recalculate everything visually based on fresh incoming numbers
+        calculateTable();
+        calcFeed();
+        calcRemaining();
+    }
 
     function generateDailyTable(days) {
         const tbody = document.getElementById('dailyBody');
         tbody.innerHTML = '';
-        for (let i = 1; i <= days; i++) {
-            appendDailyRowHTML(i);
-        }
+        for (let i = 1; i <= days; i++) { appendDailyRowHTML(i); }
         totalDays = days;
     }
 
@@ -296,7 +458,6 @@
     function autoFillDates() {
         const day1Val = document.getElementById('date_1').value;
         if (!day1Val) return;
-
         const parts = day1Val.split('-');
         const year = parseInt(parts[0], 10);
         const month = parseInt(parts[1], 10) - 1; 
@@ -305,13 +466,8 @@
         for (let i = 2; i <= totalDays; i++) {
             const nextDate = new Date(year, month, day + (i - 1));
             const yyyy = nextDate.getFullYear();
-            
-            let mm = (nextDate.getMonth() + 1).toString();
-            if (mm.length < 2) mm = "0" + mm;
-            
-            let dd = nextDate.getDate().toString();
-            if (dd.length < 2) dd = "0" + dd;
-            
+            let mm = (nextDate.getMonth() + 1).toString().padStart(2, '0');
+            let dd = nextDate.getDate().toString().padStart(2, '0');
             let target = document.getElementById('date_' + i);
             if(target) target.value = yyyy + "-" + mm + "-" + dd;
         }
@@ -322,8 +478,6 @@
         let init2 = parseInt(document.getElementById('initShed2').value) || 0;
         let currentS1 = init1;
         let currentS2 = init2;
-        let totalHoused = init1 + init2;
-        
         let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
         
         let totalMortalityS1 = 0, totalMortalityS2 = 0;
@@ -333,20 +487,15 @@
         for (let i = 1; i <= totalDays; i++) {
             if(!document.getElementById('m1_' + i)) continue; 
 
-            // Mortality Logic
             let m1Input = document.getElementById('m1_' + i).value;
             let m2Input = document.getElementById('m2_' + i).value;
             
             if (m1Input !== '' || m2Input !== '') {
                 let m1 = parseInt(m1Input) || 0;
                 let m2 = parseInt(m2Input) || 0;
-                
-                totalMortalityS1 += m1; 
-                totalMortalityS2 += m2;
+                totalMortalityS1 += m1; totalMortalityS2 += m2;
                 document.getElementById('dtot_' + i).value = m1 + m2;
-                
-                currentS1 -= m1; 
-                currentS2 -= m2;
+                currentS1 -= m1; currentS2 -= m2;
                 document.getElementById('s1_' + i).value = currentS1;
                 document.getElementById('s2_' + i).value = currentS2;
             } else {
@@ -355,40 +504,30 @@
                 document.getElementById('s2_' + i).value = '';
             }
 
-            // Feed Consumption Logic (Strictly sums from daily f1 and f2 inputs)
             let f1 = parseFloat(document.getElementById('f1_' + i).value) || 0;
             let f2 = parseFloat(document.getElementById('f2_' + i).value) || 0;
-            
-            consumedFeedS1 += f1; 
-            consumedFeedS2 += f2;
+            consumedFeedS1 += f1; consumedFeedS2 += f2;
             cumulativeFeedBags += (f1 + f2);
 
-            // Daily FCR Calculation
             let wt = parseFloat(document.getElementById('wt_' + i).value) || 0;
             let liveStock = currentS1 + currentS2;
             let fcrField = document.getElementById('fcr_' + i);
 
             if (wt > 0 && liveStock > 0 && cumulativeFeedBags > 0) {
-                let totalFeedKg = cumulativeFeedBags * bagWt;
-                let totalLiveKg = liveStock * wt;
-                fcrField.value = (totalFeedKg / totalLiveKg).toFixed(3);
+                fcrField.value = ((cumulativeFeedBags * bagWt) / (liveStock * wt)).toFixed(3);
             } else {
                 fcrField.value = '';
             }
         }
 
-        // Apply Column Totals
         document.getElementById('tot_m1').innerText = totalMortalityS1;
         document.getElementById('tot_m2').innerText = totalMortalityS2;
         document.getElementById('tot_daily').innerText = totalMortalityS1 + totalMortalityS2;
         document.getElementById('tot_s1_stock').innerText = currentS1;
         document.getElementById('tot_s2_stock').innerText = currentS2;
-        
         document.getElementById('tot_f1').innerText = consumedFeedS1.toFixed(2);
         document.getElementById('tot_f2').innerText = consumedFeedS2.toFixed(2);
-
-        // Apply Global Flock Summary Bar
-        document.getElementById('tot_housed').innerText = totalHoused;
+        document.getElementById('tot_housed').innerText = init1 + init2;
         document.getElementById('tot_in_stock').innerText = (currentS1 + currentS2);
         
         let totalConsumedBags = consumedFeedS1 + consumedFeedS2;
@@ -400,37 +539,27 @@
         const tbody = document.getElementById('feedBody');
         const tr = document.createElement('tr');
         
-        let selOld = type === 'Old feed' ? 'selected' : '';
-        let selPre = type === 'Pre-Starter' ? 'selected' : '';
-        let selSta = type === 'Starter' ? 'selected' : '';
-        let selFin = type === 'Finisher' ? 'selected' : '';
-        let selRet = type === 'Return Feed' ? 'selected' : '';
-        let selDef = type === '' ? 'selected' : '';
+        let options = ['Old feed', 'Pre-Starter', 'Starter', 'Finisher', 'Return Feed'];
+        let selectHtml = `<select onchange="runSync()"><option value="" disabled ${type===''?'selected':''}>Select...</option>`;
+        options.forEach(opt => {
+            selectHtml += `<option value="${opt}" ${type===opt?'selected':''}>${opt}</option>`;
+        });
+        selectHtml += `</select>`;
 
         tr.innerHTML = `
             <td><input type="date" value="${date}" oninput="runSync()"></td>
-            <td>
-                <select onchange="runSync()">
-                    <option value="" disabled ${selDef}>Select...</option>
-                    <option value="Old feed" ${selOld}>Old feed</option>
-                    <option value="Pre-Starter" ${selPre}>Pre-Starter</option>
-                    <option value="Starter" ${selSta}>Starter</option>
-                    <option value="Finisher" ${selFin}>Finisher</option>
-                    <option value="Return Feed" ${selRet}>Return Feed</option>
-                </select>
-            </td>
+            <td>${selectHtml}</td>
             <td><input type="number" step="any" value="${b1}" oninput="runSync()"></td>
             <td><input type="number" step="any" value="${b2}" oninput="runSync()"></td>
             <td><input type="text" readonly></td>
         `;
         tbody.appendChild(tr);
-        runSync();
+        if(!isSyncingFromCloud) runSync();
     }
 
     function calcFeed() {
         const rows = document.getElementById('feedBody').querySelectorAll('tr');
-        let inventoryS1 = 0;
-        let inventoryS2 = 0;
+        let inventoryS1 = 0, inventoryS2 = 0;
 
         for (let j = 0; j < rows.length; j++) {
             let row = rows[j];
@@ -440,13 +569,8 @@
             
             row.cells[4].querySelector('input').value = (b1 + b2).toFixed(2);
 
-            if (type === 'Return Feed') { 
-                inventoryS1 -= b1; 
-                inventoryS2 -= b2; 
-            } else { 
-                inventoryS1 += b1; 
-                inventoryS2 += b2; 
-            }
+            if (type === 'Return Feed') { inventoryS1 -= b1; inventoryS2 -= b2; }
+            else { inventoryS1 += b1; inventoryS2 += b2; }
         }
 
         document.getElementById('feed_tot_s1').innerText = inventoryS1.toFixed(2);
@@ -454,156 +578,61 @@
         document.getElementById('feed_tot_all').innerText = (inventoryS1 + inventoryS2).toFixed(2);
     }
 
-    // Calculates the remaining feed by subtracting Consumed from Arrivals
     function calcRemaining() {
         let totalArrivals = parseFloat(document.getElementById('feed_tot_all').innerText) || 0;
         let totalConsumed = parseFloat(document.getElementById('tot_feed_consumed').innerText) || 0;
         let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
 
         let remainingBags = totalArrivals - totalConsumed;
-        let remainingKg = remainingBags * bagWt;
-
         document.getElementById('tot_feed_remaining').innerText = remainingBags.toFixed(2);
-        document.getElementById('tot_feed_remaining_kg').innerText = remainingKg.toFixed(2);
+        document.getElementById('tot_feed_remaining_kg').innerText = (remainingBags * bagWt).toFixed(2);
     }
 
     function openSummary() {
         let init1 = parseInt(document.getElementById('initShed1').value) || 0;
         let init2 = parseInt(document.getElementById('initShed2').value) || 0;
         let totalInit = init1 + init2;
-
         let totMor = parseInt(document.getElementById('tot_daily').innerText) || 0;
-        let morPercent = totalInit > 0 ? ((totMor / totalInit) * 100).toFixed(2) : 0;
-        
         let surviving = totalInit - totMor;
-        let survivalPercent = totalInit > 0 ? ((surviving / totalInit) * 100).toFixed(2) : 0;
-
         let totalFeedBags = parseFloat(document.getElementById('tot_feed_consumed').innerText) || 0;
         let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
-        let totalFeedKg = totalFeedBags * bagWt;
-
         let totalArrivals = parseFloat(document.getElementById('feed_tot_all').innerText) || 0;
-        let remainingBags = totalArrivals - totalFeedBags;
-        let remainingKg = remainingBags * bagWt;
 
-        let finalWtStr = "N/A";
         let lastRecordedWeight = 0;
-        
-        // Find the absolute last weight recorded for accurate Batch FCR
         for (let i = totalDays; i >= 1; i--) {
             let wtElement = document.getElementById('wt_' + i);
             if (wtElement && parseFloat(wtElement.value) > 0) {
                 lastRecordedWeight = parseFloat(wtElement.value);
-                finalWtStr = lastRecordedWeight + " kg";
                 break;
             }
         }
 
-        let batchFCR = "N/A";
-        if (lastRecordedWeight > 0 && surviving > 0 && totalFeedKg > 0) {
-            let totalLiveKg = surviving * lastRecordedWeight;
-            batchFCR = (totalFeedKg / totalLiveKg).toFixed(3);
-        }
+        let batchFCR = (lastRecordedWeight > 0 && surviving > 0) ? ((totalFeedBags * bagWt) / (surviving * lastRecordedWeight)).toFixed(3) : "N/A";
 
         document.getElementById('summaryContent').innerHTML = `
             <div class="summary-stat"><span>Total Housed Birds</span> <strong>${totalInit} birds</strong></div>
-            <div class="summary-stat"><span>Total Mortality</span> <strong>${totMor} birds (${morPercent}%)</strong></div>
-            <div class="summary-stat"><span>Surviving Birds in Stock</span> <strong>${surviving} birds (${survivalPercent}%)</strong></div>
-            
-            <div class="summary-stat" style="margin-top: 15px;"><span>Net Feed Arrivals</span> <strong>${totalArrivals.toFixed(2)} bags</strong></div>
-            <div class="summary-stat"><span>Total Feed Consumed</span> <strong>${totalFeedBags.toFixed(2)} bags (${totalFeedKg.toLocaleString()} kg)</strong></div>
-            <div class="summary-stat"><span><strong>Feed Remaining in Inventory</strong></span> <strong style="color: var(--accent);">${remainingBags.toFixed(2)} bags (${remainingKg.toLocaleString()} kg)</strong></div>
-            
-            <div class="summary-stat" style="margin-top: 15px;"><span>Final Avg Weight</span> <strong>${finalWtStr}</strong></div>
-            <div class="summary-stat" style="background: #eaf2f8; padding: 10px; margin-top: 5px; border-radius: 4px;">
-                <span><strong>Batch Final FCR</strong></span> <strong style="font-size: 18px;">${batchFCR}</strong>
+            <div class="summary-stat"><span>Total Mortality</span> <strong>${totMor} (${(totalInit>0?(totMor/totalInit*100).toFixed(2):0)}%)</strong></div>
+            <div class="summary-stat"><span>Surviving Birds</span> <strong>${surviving} (${(totalInit>0?(surviving/totalInit*100).toFixed(2):0)}%)</strong></div>
+            <div class="summary-stat" style="margin-top:15px;"><span>Net Feed Arrivals</span> <strong>${totalArrivals.toFixed(2)} bags</strong></div>
+            <div class="summary-stat"><span>Total Feed Consumed</span> <strong>${totalFeedBags.toFixed(2)} bags</strong></div>
+            <div class="summary-stat"><span>Feed Remaining</span> <strong style="color:var(--accent);">${(totalArrivals - totalFeedBags).toFixed(2)} bags</strong></div>
+            <div class="summary-stat" style="margin-top:15px;"><span>Final Avg Weight</span> <strong>${lastRecordedWeight > 0 ? lastRecordedWeight + " kg" : "N/A"}</strong></div>
+            <div class="summary-stat" style="background:#eaf2f8; padding:10px; margin-top:5px; border-radius:4px;">
+                <span><strong>Batch Final FCR</strong></span> <strong style="font-size:18px;">${batchFCR}</strong>
             </div>
         `;
         document.getElementById('summaryModal').style.display = 'flex';
     }
 
-    function closeSummary() {
-        document.getElementById('summaryModal').style.display = 'none';
-    }
-
-    function saveData() {
-        let data = {
-            settings: {
-                initS1: document.getElementById('initShed1').value,
-                initS2: document.getElementById('initShed2').value,
-                bagWt: document.getElementById('bagWt').value,
-                days: totalDays
-            },
-            daily: [],
-            feed: []
-        };
-
-        for(let i=1; i<=totalDays; i++) {
-            if(!document.getElementById('m1_' + i)) continue;
-            data.daily.push({
-                date: document.getElementById('date_' + i).value,
-                m1: document.getElementById('m1_' + i).value,
-                m2: document.getElementById('m2_' + i).value,
-                f1: document.getElementById('f1_' + i).value,
-                f2: document.getElementById('f2_' + i).value,
-                wt: document.getElementById('wt_' + i).value,
-                note: document.getElementById('note_' + i).value
-            });
-        }
-
-        let feedRows = document.querySelectorAll('#feedBody tr');
-        for (let j = 0; j < feedRows.length; j++) {
-            let row = feedRows[j];
-            data.feed.push({
-                date: row.cells[0].querySelector('input').value,
-                type: row.cells[1].querySelector('select').value,
-                b1: row.cells[2].querySelector('input').value,
-                b2: row.cells[3].querySelector('input').value
-            });
-        }
-
-        localStorage.setItem('poultryData', JSON.stringify(data));
-    }
-
-    function loadData() {
-        let data = JSON.parse(localStorage.getItem('poultryData'));
-        if (!data) return;
-
-        document.getElementById('initShed1').value = data.settings.initS1;
-        document.getElementById('initShed2').value = data.settings.initS2;
-        document.getElementById('bagWt').value = data.settings.bagWt;
-        totalDays = data.settings.days || 45;
-
-        document.getElementById('dailyBody').innerHTML = '';
-        data.daily.forEach(function(dayData, index) {
-            let i = index + 1;
-            appendDailyRowHTML(i);
-            document.getElementById('date_' + i).value = dayData.date || '';
-            document.getElementById('m1_' + i).value = dayData.m1 || '';
-            document.getElementById('m2_' + i).value = dayData.m2 || '';
-            document.getElementById('f1_' + i).value = dayData.f1 || '';
-            document.getElementById('f2_' + i).value = dayData.f2 || '';
-            document.getElementById('wt_' + i).value = dayData.wt || '';
-            document.getElementById('note_' + i).value = dayData.note || '';
-        });
-
-        document.getElementById('feedBody').innerHTML = '';
-        if (data.feed.length > 0) {
-            data.feed.forEach(function(f) { addFeedRow(f.date, f.type, f.b1, f.b2); });
-        } else {
-            addFeedRow();
-        }
-
-        runSync();
-    }
+    function closeSummary() { document.getElementById('summaryModal').style.display = 'none'; }
 
     function clearData() {
-        if(confirm("DANGER: This will permanently wipe all entered data and reset the tracker. Are you absolutely sure?")) {
-            localStorage.removeItem('poultryData');
+        if(confirm("This will permanently wipe all cloud database records bound to this Key. Proceed?")) {
+            if(cloudRef) cloudRef.remove();
+            localStorage.removeItem('poultrySyncKey');
             location.reload();
         }
     }
 </script>
-
 </body>
 </html>
