@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-     <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Poultry Tracker (Secure Cloud)</title>
     
-   
+    <link rel="manifest" href="manifest.json">
 
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -31,6 +30,8 @@
         #loginScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--secondary); z-index: 9999; display: flex; align-items: center; justify-content: center; }
         .login-box { background: #fff; padding: 40px; border-radius: 10px; width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .login-box input { width: 100%; margin-bottom: 15px; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 15px; }
+        .forgot-link { display: block; margin-top: 15px; color: var(--accent); cursor: pointer; font-size: 13px; text-decoration: underline; background: none; border: none; width: 100%; }
+        .forgot-link:hover { opacity: 0.7; }
         
         /* Main UI */
         .header-section { border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
@@ -90,7 +91,8 @@
         <input type="password" id="authPassword" placeholder="Password">
         <button class="btn-primary" style="width: 100%; margin-bottom: 10px; padding: 12px;" onclick="login()">Log In</button>
         <button class="btn-outline" style="width: 100%; padding: 12px;" onclick="register()">Create Account</button>
-        <p id="authError" style="color: red; font-size: 13px; margin-top: 15px; min-height: 20px;"></p>
+        <button class="forgot-link" onclick="resetPassword()">Forgot Password?</button>
+        <p id="authError" style="color: red; font-size: 13px; margin-top: 15px; min-height: 20px; font-weight: bold;"></p>
     </div>
 </div>
 
@@ -265,9 +267,16 @@
         }
     });
 
+    function resetError() {
+        document.getElementById('authError').innerText = "";
+        document.getElementById('authError').style.color = "red";
+    }
+
     function login() {
+        resetError();
         const e = document.getElementById('authEmail').value;
         const p = document.getElementById('authPassword').value;
+        if(!e || !p) { document.getElementById('authError').innerText = "Please enter email and password."; return; }
         document.getElementById('authError').innerText = "Logging in...";
         firebase.auth().signInWithEmailAndPassword(e, p).catch(error => {
             document.getElementById('authError').innerText = error.message;
@@ -275,10 +284,28 @@
     }
 
     function register() {
+        resetError();
         const e = document.getElementById('authEmail').value;
         const p = document.getElementById('authPassword').value;
+        if(!e || !p) { document.getElementById('authError').innerText = "Please enter email and password."; return; }
         document.getElementById('authError').innerText = "Creating account...";
         firebase.auth().createUserWithEmailAndPassword(e, p).catch(error => {
+            document.getElementById('authError').innerText = error.message;
+        });
+    }
+
+    function resetPassword() {
+        resetError();
+        const e = document.getElementById('authEmail').value;
+        if (!e) {
+            document.getElementById('authError').innerText = "Please enter your email address above to reset password.";
+            return;
+        }
+        document.getElementById('authError').innerText = "Sending reset link...";
+        firebase.auth().sendPasswordResetEmail(e).then(() => {
+            document.getElementById('authError').style.color = "var(--success)";
+            document.getElementById('authError').innerText = "Password reset email sent! Check your inbox.";
+        }).catch(error => {
             document.getElementById('authError').innerText = error.message;
         });
     }
@@ -467,7 +494,6 @@
     // 💾 EXPORT, BACKUP & RESTORE FUNCTIONS
     // ==========================================
     function exportCSV() {
-        // --- PART 1: DAILY LOG ---
         let csv = "--- DAILY LOG ---\n";
         csv += "Day,Date,Mor S1,Mor S2,Total Mor,Stock S1,Stock S2,Feed S1,Feed S2,Avg Wt(kg),FCR,Remarks\n";
         for (let i = 1; i <= totalDays; i++) {
@@ -484,10 +510,8 @@
             csv += row.join(",") + "\n";
         }
 
-        // --- PART 2: FEED INVENTORY ---
         csv += "\n--- FEED ARRIVALS (INVENTORY) ---\n";
         csv += "Date,Type,Bags S1,Bags S2,Total Bags\n";
-        
         let feedRows = document.querySelectorAll('#feedBody tr');
         for (let j = 0; j < feedRows.length; j++) {
             let row = feedRows[j];
