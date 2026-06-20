@@ -33,13 +33,12 @@
         #loginScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--secondary); z-index: 9999; display: flex; align-items: center; justify-content: center; }
         .login-box { background: #fff; padding: 40px; border-radius: 10px; width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         
-        /* Login & Dashboard Inputs (Kept at 16px for readability/mobile friendly) */
+        /* iOS ZOOM FIX: Login/Dashboard inputs must be 16px */
         .login-box input { width: 100%; margin-bottom: 15px; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
         .input-group input, .input-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
         
-        /* Table Inputs (Reverted to compact 13px for neat layout) */
+        /* Table Inputs (Compact 13px for neat layout) */
         input[type="number"], input[type="text"], input[type="date"], select { width: 95%; min-width: 40px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 13px; text-align: center; }
-        #feedBody select, #feedBody input { min-width: 90px; width: auto; font-size: 13px; }
         
         .forgot-link { display: block; margin-top: 15px; color: var(--accent); cursor: pointer; font-size: 14px; text-decoration: underline; background: none; border: none; width: 100%; }
         
@@ -63,9 +62,12 @@
         th, td { border: 1px solid #bdc3c7; padding: 5px 3px; text-align: center; }
         th { background-color: var(--secondary); color: white; white-space: nowrap; padding: 6px; }
         
-        /* Fixed Feed Layout */
+        /* FIXED: Ultra-Tight Feed Arrivals Layout */
         .tight-col { width: 1%; white-space: nowrap; }
-        #feedHead th { width: 1%; white-space: nowrap; padding: 6px 15px; }
+        #feedHead th { width: 1%; white-space: nowrap; padding: 6px 5px; } /* Reduced padding to squeeze headers */
+        #feedBody select { width: 100%; min-width: 100px; font-size: 13px; }
+        #feedBody input[placeholder="DD/MM/YYYY"] { width: 85px; min-width: 85px; }
+        #feedBody input[type="number"], #feedBody input[readonly] { width: 50px; min-width: 50px; padding: 5px 2px; } /* Locks bags/total to header width */
         
         input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type="number"] { -moz-appearance: textfield; }
@@ -266,7 +268,6 @@
             if (user) {
                 currentUid = user.uid;
                 document.getElementById('loginScreen').style.display = 'none';
-                // Trigger batch loader which handles dynamic screen routing
                 loadUserBatches(user.uid);
             } else {
                 currentUid = null;
@@ -424,7 +425,6 @@
                     opt.value = b; opt.innerText = b; select.appendChild(opt);
                 }
                 
-                // Memory logic: Load the last batch the user was working on
                 let savedBatch = localStorage.getItem('poultryActiveBatch');
                 if (savedBatch && list[savedBatch]) {
                     currentBatch = savedBatch;
@@ -435,7 +435,6 @@
                 select.value = currentBatch;
                 connectToBatchData(currentBatch);
                 
-                // Memory logic: Route them directly to tracker if they refreshed there
                 if (localStorage.getItem('poultryCurrentView') === 'tracker') {
                     openTrackerScreen();
                 } else {
@@ -490,6 +489,7 @@
             firebase.database().ref().update(updates);
             currentBatch = null;
             localStorage.removeItem('poultryActiveBatch');
+            backToDashboard();
         }
     }
 
@@ -552,6 +552,7 @@
     }
 
     function saveDataToCloud() {
+        if(!cloudRef) return;
         cloudRef.set(buildDataObject()).then(() => { document.getElementById('saveStatus').innerText = "🟢 Live Sync: " + currentBatch; })
         .catch(err => { document.getElementById('saveStatus').innerText = "❌ Sync Error"; });
     }
