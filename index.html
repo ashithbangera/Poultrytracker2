@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Smart Poultry Tracker (Secure Dashboard)</title>
     
+    <!-- PWA Manifest Link -->
     <link rel="manifest" href="manifest.json">
 
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     
+    <!-- Chart.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
@@ -36,9 +39,10 @@
         input[type="number"], input[type="text"], input[type="date"], select { width: 95%; min-width: 40px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 13px; text-align: center; }
         input[readonly] { background-color: #f2f4f4; font-weight: 600; color: #333; border: none; }
         
-        /* Table Column Sizing */
-        #dailyBody input[placeholder="DD/MM/YYYY"], #feedBody input[placeholder="DD/MM/YYYY"], #liftBody input[placeholder="DD/MM/YYYY"] { width: 90px !important; min-width: 90px !important; padding: 6px 2px; letter-spacing: 0px; }
+        /* Date & Calendar Sizing */
+        #dailyBody input[type="date"], #feedBody input[type="date"], #liftBody input[type="date"] { width: 120px !important; min-width: 120px !important; padding: 5px; }
         
+        /* Table Column Sizing */
         #feedHead th, #liftHead th { white-space: nowrap; padding: 6px 4px; }
         #feedBody select { width: 100px !important; min-width: 100px !important; padding: 6px 2px; }
         #feedBody input[type="number"], #feedBody input[readonly] { width: 55px !important; min-width: 55px !important; padding: 6px 2px; }
@@ -106,6 +110,7 @@
 </head>
 <body>
 
+<!-- Secure Auth Screen -->
 <div id="loginScreen">
     <div class="login-box">
         <h2>Farm Login 🔒</h2>
@@ -118,6 +123,7 @@
     </div>
 </div>
 
+<!-- LANDING PAGE DASHBOARD -->
 <div id="landingScreen" style="display: none;" class="container">
     <div class="header-section" style="border-bottom: none;">
         <h1>Poultry Dashboard ☁️</h1>
@@ -154,13 +160,15 @@
             
             <label style="display: block; font-weight: bold; color: var(--secondary); margin-top: 10px; margin-bottom: 10px;">Initial Housed Birds (Per Shed):</label>
             <div id="initShedContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                </div>
+                <!-- Dynamically injected Shed Inputs -->
+            </div>
         </div>
 
         <button class="btn-primary btn-large" onclick="openTrackerScreen()">➡️ Open Daily Log View</button>
     </div>
 </div>
 
+<!-- MAIN APPLICATION (DAILY LOG VIEW) -->
 <div id="appContainer" style="display: none;" class="container">
     <div class="header-section">
         <div style="display: flex; align-items: center; gap: 15px;">
@@ -173,6 +181,7 @@
         </div>
     </div>
 
+    <!-- Data Management Bar -->
     <div class="actions-bar">
         <strong>Data & Reports:</strong>
         <button class="btn-success" onclick="exportCSV()">📄 Export Excel</button>
@@ -183,7 +192,9 @@
         <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importBackup(event)">
     </div>
 
+    <!-- MAIN TRACKER GRID -->
     <div class="grid-layout">
+        <!-- Daily Log Section -->
         <div class="section">
             <h2>Daily Log</h2>
             <div class="table-responsive">
@@ -199,7 +210,9 @@
             </div>
         </div>
 
+        <!-- Inventory Stack -->
         <div>
+            <!-- Feed Arrivals Section -->
             <div class="section">
                 <h2>Feed Arrivals</h2>
                 <div class="table-responsive">
@@ -215,6 +228,7 @@
                 </div>
             </div>
 
+            <!-- Lifting Section -->
             <div class="section">
                 <h2>Chicken Lifting (Harvest)</h2>
                 <div class="table-responsive">
@@ -232,6 +246,7 @@
         </div>
     </div>
 
+    <!-- ANALYTICS DASHBOARD -->
     <div class="section" style="margin-top: 20px;">
         <h2>📊 Analytics Dashboard</h2>
         <div class="analytics-grid">
@@ -241,6 +256,7 @@
     </div>
 </div>
 
+<!-- Modal -->
 <div class="modal-overlay" id="summaryModal">
     <div class="modal-content">
         <h2>Batch Summary Report</h2>
@@ -459,16 +475,21 @@
     }
 
     function runSync() {
-        // Calculation Sequence is Critical: Lifting -> Feed -> Table
+        // Run core math
         calcFeed(); 
         let liftingData = calcLifting(); 
         calculateTable(liftingData); 
         calcRemaining(); 
-        updateCharts();
 
         if (isSyncingFromCloud || !cloudRef) return; 
+        
         document.getElementById('saveStatus').innerText = "⏳ Saving...";
-        clearTimeout(saveTimeout); saveTimeout = setTimeout(function() { saveDataToCloud(); }, 1000); 
+        clearTimeout(saveTimeout); 
+        saveTimeout = setTimeout(function() { 
+            // Update charts inside the 1-second timeout so typing doesn't crash the canvas!
+            updateCharts();
+            saveDataToCloud(); 
+        }, 1000); 
     }
 
     function buildDataObject() {
@@ -542,17 +563,19 @@
             });
         } else { addLiftRow(); }
 
-        runSync(); 
+        // Initial render forces charts to load immediately.
+        calculateTable(calcLifting()); calcFeed(); calcRemaining(); updateCharts();
     }
 
     // ==========================================
-    // 📅 ADD/REMOVE ROW LOGIC
+    // 📅 ADD/REMOVE ROW LOGIC (NATIVE CALENDARS)
     // ==========================================
     function generateDailyTable(days) { document.getElementById('dailyBody').innerHTML = ''; for (let i = 1; i <= days; i++) { appendDailyRowHTML(i); } totalDays = days; }
     
     function appendDailyRowHTML(i) {
         const tbody = document.getElementById('dailyBody');
-        let dateInput = i === 1 ? `<input type="text" id="date_1" placeholder="DD/MM/YYYY" maxlength="10" oninput="autoFillDates(); runSync();">` : `<input type="text" id="date_${i}" placeholder="DD/MM/YYYY" maxlength="10" oninput="runSync()">`;
+        // Native Date Type restores calendar picker!
+        let dateInput = i === 1 ? `<input type="date" id="date_1" oninput="autoFillDates(); runSync();">` : `<input type="date" id="date_${i}" oninput="runSync()">`;
         const tr = document.createElement('tr'); tr.id = 'row_' + i;
         let morCells = '', stockCells = '', feedCells = '';
         for(let s=1; s<=shedCount; s++) {
@@ -568,14 +591,16 @@
     function removeDailyRow() { if(totalDays > 1) { const tb = document.getElementById('dailyBody'); if(tb.lastChild) { tb.removeChild(tb.lastChild); totalDays--; runSync(); } } }
 
     function autoFillDates() {
-        const day1Val = document.getElementById('date_1').value; if (!day1Val || day1Val.length < 8) return; 
-        const parts = day1Val.split('/'); if(parts.length !== 3) return;
-        const dd = parseInt(parts[0], 10), mm = parseInt(parts[1], 10) - 1, yyyy = parseInt(parts[2], 10);
+        const day1Val = document.getElementById('date_1').value; // Returns YYYY-MM-DD from native picker
+        if (!day1Val) return; 
+        const parts = day1Val.split('-'); if(parts.length !== 3) return;
+        const yyyy = parseInt(parts[0], 10), mm = parseInt(parts[1], 10) - 1, dd = parseInt(parts[2], 10);
         if (isNaN(dd) || isNaN(mm) || isNaN(yyyy)) return;
+
         for (let i = 2; i <= totalDays; i++) {
             const nextDate = new Date(yyyy, mm, dd + (i - 1));
             let n_yyyy = nextDate.getFullYear(), n_mm = (nextDate.getMonth() + 1).toString().padStart(2, '0'), n_dd = nextDate.getDate().toString().padStart(2, '0');
-            let target = document.getElementById('date_' + i); if(target) target.value = `${n_dd}/${n_mm}/${n_yyyy}`;
+            let target = document.getElementById('date_' + i); if(target) target.value = `${n_yyyy}-${n_mm}-${n_dd}`;
         }
     }
 
@@ -585,7 +610,7 @@
         ['Old feed', 'Pre-Starter', 'Starter', 'Finisher', 'Return Feed'].forEach(opt => { selectHtml += `<option value="${opt}" ${type===opt?'selected':''}>${opt}</option>`; });
         selectHtml += `</select>`;
         let bagCells = ''; for(let s=1; s<=shedCount; s++) { bagCells += `<td><input type="number" step="any" value="${bags[s-1] || ''}" oninput="runSync()"></td>`; }
-        tr.innerHTML = `<td><input type="text" placeholder="DD/MM/YYYY" maxlength="10" value="${date}" oninput="runSync()"></td><td>${selectHtml}</td>${bagCells}<td><input type="text" readonly></td>`;
+        tr.innerHTML = `<td><input type="date" value="${date}" oninput="runSync()"></td><td>${selectHtml}</td>${bagCells}<td><input type="text" readonly></td>`;
         tbody.appendChild(tr); if(!isSyncingFromCloud) runSync();
     }
     function removeFeedRow() { const tb = document.getElementById('feedBody'); if(tb.lastChild) { tb.removeChild(tb.lastChild); runSync(); } }
@@ -593,7 +618,7 @@
     function addLiftRow(date='', sheds=[], boxes='', tWt='') {
         const tbody = document.getElementById('liftBody'); const tr = document.createElement('tr');
         let shedCells = ''; for(let s=1; s<=shedCount; s++) { shedCells += `<td><input type="number" value="${sheds[s-1] || ''}" oninput="runSync()"></td>`; }
-        tr.innerHTML = `<td><input type="text" placeholder="DD/MM/YYYY" maxlength="10" value="${date}" oninput="runSync()"></td>${shedCells}<td><input type="number" value="${boxes}" oninput="runSync()"></td><td><input type="text" readonly></td><td><input type="number" step="any" value="${tWt}" oninput="runSync()"></td><td><input type="text" readonly></td>`;
+        tr.innerHTML = `<td><input type="date" value="${date}" oninput="runSync()"></td>${shedCells}<td><input type="number" value="${boxes}" oninput="runSync()"></td><td><input type="text" readonly></td><td><input type="number" step="any" value="${tWt}" oninput="runSync()"></td><td><input type="text" readonly></td>`;
         tbody.appendChild(tr); if(!isSyncingFromCloud) runSync();
     }
     function removeLiftRow() { const tb = document.getElementById('liftBody'); if(tb.lastChild) { tb.removeChild(tb.lastChild); runSync(); } }
@@ -659,6 +684,7 @@
     }
 
     function calculateTable(liftData) {
+        if(!liftData) liftData = {}; // Failsafe
         let inits = [], currentS = [], totalMorS = [], consumedFeedS = [], totalHoused = 0;
         let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
 
@@ -686,7 +712,7 @@
                 if(mInput.value !== '' || fInput.value !== '') hasData = true;
 
                 let m = parseInt(mInput.value) || 0; let f = parseFloat(fInput.value) || 0;
-                let l = (liftedToday && liftedToday.sheds[s]) ? liftedToday.sheds[s] : 0; // Harvested birds
+                let l = (liftedToday && liftedToday.sheds[s]) ? liftedToday.sheds[s] : 0; 
 
                 totalMorS[s] += m; consumedFeedS[s] += f;
                 dayMorTotal += m; dayFeedTotal += f;
@@ -755,8 +781,15 @@
     }
 
     // ==========================================
-    // 💾 EXPORTS & REPORTS
+    // 💾 EXPORTS & REPORTS (Date Formatted explicitly for Excel)
     // ==========================================
+    function formatDateForExport(dStr) {
+        if(!dStr) return "";
+        let p = dStr.split('-');
+        if(p.length === 3) return `${p[2]}/${p[1]}/${p[0]}`; // Converts YYYY-MM-DD to DD/MM/YYYY
+        return dStr;
+    }
+
     function exportCSV() {
         let csv = "--- DAILY LOG ---\nDay,Date,";
         for(let s=1; s<=shedCount; s++) csv += `Mor S${s},`; csv += "Total Mor,";
@@ -765,7 +798,7 @@
 
         for (let i = 1; i <= totalDays; i++) {
             if(!document.getElementById('m1_' + i)) continue;
-            let row = [i, document.getElementById('date_' + i).value];
+            let row = [i, `"${formatDateForExport(document.getElementById('date_' + i).value)}"`];
             for(let s=1; s<=shedCount; s++) row.push(document.getElementById(`m${s}_${i}`).value);
             row.push(document.getElementById('dtot_' + i).value);
             for(let s=1; s<=shedCount; s++) row.push(document.getElementById(`s${s}_${i}`).value);
@@ -778,7 +811,7 @@
         for(let s=1; s<=shedCount; s++) csv += `Bags S${s},`; csv += "Total Bags\n";
         let feedRows = document.querySelectorAll('#feedBody tr');
         for (let j = 0; j < feedRows.length; j++) {
-            let tr = feedRows[j]; let row = [ `"${tr.cells[0].querySelector('input').value}"`, `"${tr.cells[1].querySelector('select').value}"` ];
+            let tr = feedRows[j]; let row = [ `"${formatDateForExport(tr.cells[0].querySelector('input').value)}"`, `"${tr.cells[1].querySelector('select').value}"` ];
             for(let s=1; s<=shedCount; s++) row.push(`"${tr.cells[1+s].querySelector('input').value}"`);
             row.push(`"${tr.cells[1+shedCount+1].querySelector('input').value}"`); csv += row.join(",") + "\n";
         }
@@ -787,7 +820,7 @@
         for(let s=1; s<=shedCount; s++) csv += `Shed ${s},`; csv += "Boxes,Total Lifted,Total Wt,Avg Wt\n";
         let liftRows = document.querySelectorAll('#liftBody tr');
         for (let k = 0; k < liftRows.length; k++) {
-            let tr = liftRows[k]; let row = [ `"${tr.cells[0].querySelector('input').value}"` ];
+            let tr = liftRows[k]; let row = [ `"${formatDateForExport(tr.cells[0].querySelector('input').value)}"` ];
             for(let s=1; s<=shedCount; s++) row.push(`"${tr.cells[s].querySelector('input').value}"`);
             row.push(`"${tr.cells[1+shedCount].querySelector('input').value}"`, `"${tr.cells[1+shedCount+1].querySelector('input').value}"`, `"${tr.cells[1+shedCount+2].querySelector('input').value}"`, `"${tr.cells[1+shedCount+3].querySelector('input').value}"`);
             csv += row.join(",") + "\n";
