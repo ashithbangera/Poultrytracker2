@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Poultry Tracker (Secure Dashboard)</title>
     
     <link rel="manifest" href="manifest.json">
@@ -29,8 +29,10 @@
         /* Auth Screen */
         #loginScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--secondary); z-index: 9999; display: flex; align-items: center; justify-content: center; }
         .login-box { background: #fff; padding: 40px; border-radius: 10px; width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .login-box input { width: 100%; margin-bottom: 15px; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
-        .input-group input, .input-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+        
+        /* Standard PC Font Sizes Restored */
+        .login-box input { width: 100%; margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
+        .input-group input, .input-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
         
         /* Table Inputs Base */
         input[type="number"], input[type="text"], input[type="date"], select { width: 95%; min-width: 40px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 13px; text-align: center; }
@@ -274,23 +276,21 @@
     let healthChartInstance = null;
     let fcrChartInstance = null;
 
-    try {
-        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
-        firebase.auth().onAuthStateChanged(user => {
-            if (user) {
-                currentUid = user.uid;
-                document.getElementById('loginScreen').style.display = 'none';
-                loadUserBatches(user.uid);
-            } else {
-                currentUid = null;
-                document.getElementById('loginScreen').style.display = 'flex';
-                document.getElementById('landingScreen').style.display = 'none';
-                document.getElementById('appContainer').style.display = 'none';
-            }
-        });
-    } catch (criticalError) {
-        window.onload = function() { document.getElementById('authError').innerText = "SYSTEM ERROR: Run via https:// web server."; };
-    }
+    // Direct Firebase Setup (Removed wrapper that was blocking logic)
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+    
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+            currentUid = user.uid;
+            document.getElementById('loginScreen').style.display = 'none';
+            loadUserBatches(user.uid);
+        } else {
+            currentUid = null;
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('landingScreen').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'none';
+        }
+    });
 
     // ==========================================
     // 🖥️ NAVIGATION & AUTH CONTROLS 
@@ -300,6 +300,7 @@
         document.getElementById('landingScreen').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
         document.getElementById('displayBatchName').innerText = currentBatch || "N/A";
+        updateCharts(); // FORCE CHART TO DRAW IMMEDIATELY
         runSync(); 
     }
     function backToDashboard() {
@@ -308,20 +309,37 @@
         document.getElementById('landingScreen').style.display = 'block';
     }
     function resetError() { document.getElementById('authError').innerText = ""; document.getElementById('authError').style.color = "red"; }
+    
+    // Explicit .then() forces UI transition immediately on success
     function login() {
         resetError();
         const e = document.getElementById('authEmail').value, p = document.getElementById('authPassword').value;
         if(!e || !p) { document.getElementById('authError').innerText = "Please enter email and password."; return; }
         document.getElementById('authError').innerText = "Logging in...";
-        firebase.auth().signInWithEmailAndPassword(e, p).catch(err => { document.getElementById('authError').innerText = err.message; });
+        
+        firebase.auth().signInWithEmailAndPassword(e, p)
+            .then(userCredential => {
+                document.getElementById('authError').innerText = "";
+                document.getElementById('loginScreen').style.display = 'none';
+                // The onAuthStateChanged listener handles the rest
+            })
+            .catch(err => { document.getElementById('authError').innerText = err.message; });
     }
+    
     function register() {
         resetError();
         const e = document.getElementById('authEmail').value, p = document.getElementById('authPassword').value;
         if(!e || !p) { document.getElementById('authError').innerText = "Please enter email and password."; return; }
         document.getElementById('authError').innerText = "Creating account...";
-        firebase.auth().createUserWithEmailAndPassword(e, p).catch(err => { document.getElementById('authError').innerText = err.message; });
+        
+        firebase.auth().createUserWithEmailAndPassword(e, p)
+            .then(userCredential => {
+                document.getElementById('authError').innerText = "";
+                document.getElementById('loginScreen').style.display = 'none';
+            })
+            .catch(err => { document.getElementById('authError').innerText = err.message; });
     }
+    
     function resetPassword() {
         resetError(); const e = document.getElementById('authEmail').value;
         if (!e) { document.getElementById('authError').innerText = "Please enter your email address above."; return; }
@@ -330,6 +348,7 @@
             document.getElementById('authError').innerText = "Password reset email sent!";
         }).catch(err => { document.getElementById('authError').innerText = err.message; });
     }
+    
     function logout() { firebase.auth().signOut(); localStorage.removeItem('poultryCurrentView'); }
 
     // ==========================================
@@ -461,6 +480,7 @@
     }
 
     function runSync() {
+        // Run core math immediately
         calcFeed(); 
         let liftingData = calcLifting(); 
         calculateTable(liftingData); 
@@ -471,6 +491,7 @@
         document.getElementById('saveStatus').innerText = "⏳ Saving...";
         clearTimeout(saveTimeout); 
         saveTimeout = setTimeout(function() { 
+            // Update charts after typing stops so it doesn't blink/crash while typing
             updateCharts();
             saveDataToCloud(); 
         }, 1000); 
@@ -547,6 +568,7 @@
             });
         } else { addLiftRow(); }
 
+        // Core math execution and immediate chart render
         calculateTable(calcLifting()); calcFeed(); calcRemaining(); updateCharts();
     }
 
@@ -557,6 +579,7 @@
     
     function appendDailyRowHTML(i) {
         const tbody = document.getElementById('dailyBody');
+        // ALL DATE INPUTS ARE NOW NATIVE CALENDARS (<input type="date">)
         let dateInput = i === 1 ? `<input type="date" id="date_1" oninput="autoFillDates(); runSync();">` : `<input type="date" id="date_${i}" oninput="runSync()">`;
         const tr = document.createElement('tr'); tr.id = 'row_' + i;
         let morCells = '', stockCells = '', feedCells = '';
@@ -573,7 +596,7 @@
     function removeDailyRow() { if(totalDays > 1) { const tb = document.getElementById('dailyBody'); if(tb.lastChild) { tb.removeChild(tb.lastChild); totalDays--; runSync(); } } }
 
     function autoFillDates() {
-        const day1Val = document.getElementById('date_1').value; 
+        const day1Val = document.getElementById('date_1').value; // Returns YYYY-MM-DD from calendar
         if (!day1Val) return; 
         const parts = day1Val.split('-'); if(parts.length !== 3) return;
         const yyyy = parseInt(parts[0], 10), mm = parseInt(parts[1], 10) - 1, dd = parseInt(parts[2], 10);
@@ -586,7 +609,6 @@
         }
     }
 
-    // Explicitly targeted row additions to prevent column mismatching
     function addFeedRow(date='', type='', bags=[]) {
         const tbody = document.getElementById('feedBody'); const tr = document.createElement('tr');
         let selectHtml = `<select onchange="runSync()"><option value="" disabled ${type===''?'selected':''}>Select...</option>`;
@@ -598,6 +620,7 @@
             bagCells += `<td><input type="number" step="any" class="bag-input shed-${s}" value="${bags[s-1] || ''}" oninput="runSync()"></td>`; 
         }
         
+        // Type=date activates native calendar
         tr.innerHTML = `<td><input type="date" value="${date}" oninput="runSync()"></td><td>${selectHtml}</td>${bagCells}<td><input type="text" readonly class="feed-row-total"></td>`;
         tbody.appendChild(tr); if(!isSyncingFromCloud) runSync();
     }
@@ -606,6 +629,7 @@
     function addLiftRow(date='', sheds=[], boxes='', tWt='') {
         const tbody = document.getElementById('liftBody'); const tr = document.createElement('tr');
         let shedCells = ''; for(let s=1; s<=shedCount; s++) { shedCells += `<td><input type="number" value="${sheds[s-1] || ''}" oninput="runSync()"></td>`; }
+        // Type=date activates native calendar
         tr.innerHTML = `<td><input type="date" value="${date}" oninput="runSync()"></td>${shedCells}<td><input type="number" value="${boxes}" oninput="runSync()"></td><td><input type="text" readonly></td><td><input type="number" step="any" value="${tWt}" oninput="runSync()"></td><td><input type="text" readonly></td>`;
         tbody.appendChild(tr); if(!isSyncingFromCloud) runSync();
     }
@@ -622,7 +646,7 @@
         for (let j = 0; j < rows.length; j++) {
             let row = rows[j]; let type = row.cells[1].querySelector('select').value; let rowTotal = 0;
             for(let s=1; s<=shedCount; s++) {
-                // FIXED: Direct class targeting guarantees correct column math
+                // Direct class targeting guarantees correct column math
                 let inputEl = row.querySelector(`.bag-input.shed-${s}`);
                 if(!inputEl) continue;
                 let b = parseFloat(inputEl.value) || 0; 
@@ -662,4 +686,199 @@
 
             if(date) {
                 if(!agg[date]) agg[date] = { sheds: {}, totalWt: 0, totalBirds: 0 };
-                for(let s=1; s<=shedCount; s
+                for(let s=1; s<=shedCount; s++) { agg[date].sheds[s] = (agg[date].sheds[s] || 0) + shedVals[s]; }
+                agg[date].totalWt += totalWt; agg[date].totalBirds += rowBirds;
+            }
+        }
+
+        for(let s=1; s<=shedCount; s++) { let el = document.getElementById(`lift_tot_s${s}`); if(el) el.innerText = grandSheds[s]; }
+        let elBox = document.getElementById('lift_tot_boxes'); if(elBox) elBox.innerText = grandBoxes;
+        let elBirds = document.getElementById('lift_tot_birds'); if(elBirds) elBirds.innerText = grandBirds;
+        let elWt = document.getElementById('lift_tot_wt'); if(elWt) elWt.innerText = grandWt.toFixed(2);
+        let elAvg = document.getElementById('lift_avg_wt'); if(elAvg) elAvg.innerText = (grandBirds > 0 ? (grandWt/grandBirds).toFixed(3) : '0.000');
+
+        for(let d in agg) { agg[d].avgWt = agg[d].totalBirds > 0 ? (agg[d].totalWt / agg[d].totalBirds) : 0; }
+        return agg;
+    }
+
+    function calculateTable(liftData) {
+        if(!liftData) liftData = {}; 
+        let inits = [], currentS = [], totalMorS = [], consumedFeedS = [], totalHoused = 0;
+        let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
+
+        for(let s=1; s<=shedCount; s++) {
+            inits[s] = parseInt(document.getElementById('initShed'+s)?.value) || 0;
+            currentS[s] = inits[s]; totalHoused += inits[s]; totalMorS[s] = 0; consumedFeedS[s] = 0;
+        }
+
+        let cumulativeFeedBags = 0;
+
+        for (let i = 1; i <= totalDays; i++) {
+            let dayMorTotal = 0, dayFeedTotal = 0, hasData = false, liveStock = 0;
+            let dateVal = document.getElementById(`date_${i}`).value.trim();
+            let liftedToday = (dateVal && liftData[dateVal]) ? liftData[dateVal] : null;
+
+            let wtInput = document.getElementById(`wt_${i}`);
+            if (liftedToday && wtInput) { wtInput.value = liftedToday.avgWt.toFixed(3); }
+
+            for(let s=1; s<=shedCount; s++) {
+                let mInput = document.getElementById(`m${s}_${i}`); let fInput = document.getElementById(`f${s}_${i}`);
+                if(!mInput) continue;
+                if(mInput.value !== '' || fInput.value !== '') hasData = true;
+
+                let m = parseInt(mInput.value) || 0; let f = parseFloat(fInput.value) || 0;
+                let l = (liftedToday && liftedToday.sheds[s]) ? liftedToday.sheds[s] : 0; 
+
+                totalMorS[s] += m; consumedFeedS[s] += f;
+                dayMorTotal += m; dayFeedTotal += f;
+                currentS[s] -= (m + l); 
+                liveStock += currentS[s];
+
+                if(hasData || l > 0) { document.getElementById(`s${s}_${i}`).value = currentS[s]; } else { document.getElementById(`s${s}_${i}`).value = ''; }
+            }
+            
+            if(document.getElementById(`dtot_${i}`)) { document.getElementById(`dtot_${i}`).value = hasData ? dayMorTotal : ''; }
+            cumulativeFeedBags += dayFeedTotal;
+
+            let wt = parseFloat(document.getElementById(`wt_${i}`).value) || 0;
+            let fcrField = document.getElementById(`fcr_${i}`);
+            if (wt > 0 && liveStock > 0 && cumulativeFeedBags > 0) { fcrField.value = ((cumulativeFeedBags * bagWt) / (liveStock * wt)).toFixed(3); } else { fcrField.value = ''; }
+        }
+
+        let totalDailyMor = 0, totalConsumedBags = 0, totalInStock = 0;
+        for(let s=1; s<=shedCount; s++) {
+            if(document.getElementById(`tot_m${s}`)) document.getElementById(`tot_m${s}`).innerText = totalMorS[s];
+            if(document.getElementById(`tot_s${s}_stock`)) document.getElementById(`tot_s${s}_stock`).innerText = currentS[s];
+            if(document.getElementById(`tot_f${s}`)) document.getElementById(`tot_f${s}`).innerText = consumedFeedS[s].toFixed(2);
+            totalDailyMor += totalMorS[s]; totalConsumedBags += consumedFeedS[s]; totalInStock += currentS[s];
+        }
+        
+        document.getElementById('tot_daily').innerText = totalDailyMor; document.getElementById('tot_housed').innerText = totalHoused; document.getElementById('tot_in_stock').innerText = totalInStock;
+        document.getElementById('tot_feed_consumed').innerText = totalConsumedBags.toFixed(2); 
+    }
+
+    function calcRemaining() {
+        let totalArrivals = parseFloat(document.getElementById('feed_tot_all').innerText) || 0;
+        let totalConsumed = parseFloat(document.getElementById('tot_feed_consumed').innerText) || 0;
+        let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
+        let remainingBags = totalArrivals - totalConsumed;
+        
+        let elRem = document.getElementById('tot_feed_remaining');
+        if (elRem) elRem.innerText = remainingBags.toFixed(2);
+        
+        let elRemKg = document.getElementById('tot_feed_remaining_kg');
+        if (elRemKg) elRemKg.innerText = (remainingBags * bagWt).toFixed(2);
+    }
+
+    // ==========================================
+    // 📊 CHART.JS ENGINE
+    // ==========================================
+    function updateCharts() {
+        const labels = [], mortalityData = [], feedData = [], fcrData = [];
+        
+        // Pushes all Days into the grid so the chart is never completely blank, even on Day 1
+        for (let i = 1; i <= totalDays; i++) {
+            labels.push("Day " + i);
+            
+            if(!document.getElementById('m1_' + i)) {
+                mortalityData.push(null); feedData.push(null); fcrData.push(null); continue;
+            }
+            
+            let dayMor = 0, dayFeed = 0, hasData = false;
+            for(let s=1; s<=shedCount; s++) {
+                let mInput = document.getElementById(`m${s}_${i}`); let fInput = document.getElementById(`f${s}_${i}`);
+                if(mInput && fInput && (mInput.value !== '' || fInput.value !== '')) hasData = true;
+                dayMor += parseInt(mInput ? mInput.value : 0) || 0; dayFeed += parseFloat(fInput ? fInput.value : 0) || 0;
+            }
+            let fcrInput = document.getElementById('fcr_' + i); let fcr = fcrInput ? fcrInput.value : '';
+
+            mortalityData.push(hasData ? dayMor : null);
+            feedData.push(hasData ? dayFeed : null);
+            fcrData.push(hasData ? (parseFloat(fcr) || null) : null);
+        }
+
+        const ctxHealth = document.getElementById('healthChart').getContext('2d');
+        if (healthChartInstance) healthChartInstance.destroy();
+        healthChartInstance = new Chart(ctxHealth, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Daily Mortality', data: mortalityData, backgroundColor: 'rgba(192, 57, 43, 0.7)' }] }, options: { responsive: true, maintainAspectRatio: false } });
+        const ctxFcr = document.getElementById('fcrChart').getContext('2d');
+        if (fcrChartInstance) fcrChartInstance.destroy();
+        fcrChartInstance = new Chart(ctxFcr, { type: 'line', data: { labels: labels, datasets: [ { type: 'bar', label: 'Feed (Bags)', data: feedData, backgroundColor: 'rgba(41, 128, 185, 0.7)', yAxisID: 'y' }, { type: 'line', label: 'Cumulative FCR', data: fcrData, borderColor: '#27ae60', backgroundColor: 'rgba(39, 174, 96, 0.2)', borderWidth: 3, yAxisID: 'y1' } ] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { position: 'left' }, y1: { position: 'right', grid: {drawOnChartArea: false} } } } });
+    }
+
+    // ==========================================
+    // 💾 EXPORTS & REPORTS (Converts YYYY-MM-DD to DD/MM/YYYY for Excel)
+    // ==========================================
+    function formatDateForExport(dStr) {
+        if(!dStr) return "";
+        let p = dStr.split('-');
+        if(p.length === 3) return `${p[2]}/${p[1]}/${p[0]}`; 
+        return dStr;
+    }
+
+    function exportCSV() {
+        let csv = "--- DAILY LOG ---\nDay,Date,";
+        for(let s=1; s<=shedCount; s++) csv += `Mor S${s},`; csv += "Total Mor,";
+        for(let s=1; s<=shedCount; s++) csv += `Stock S${s},`;
+        for(let s=1; s<=shedCount; s++) csv += `Feed S${s},`; csv += "Avg Wt,FCR,Remarks\n";
+
+        for (let i = 1; i <= totalDays; i++) {
+            if(!document.getElementById('m1_' + i)) continue;
+            let row = [i, `"${formatDateForExport(document.getElementById('date_' + i).value)}"`];
+            for(let s=1; s<=shedCount; s++) row.push(document.getElementById(`m${s}_${i}`).value);
+            row.push(document.getElementById('dtot_' + i).value);
+            for(let s=1; s<=shedCount; s++) row.push(document.getElementById(`s${s}_${i}`).value);
+            for(let s=1; s<=shedCount; s++) row.push(document.getElementById(`f${s}_${i}`).value);
+            row.push(document.getElementById('wt_' + i).value, document.getElementById('fcr_' + i).value, `"${document.getElementById('note_' + i).value}"`);
+            csv += row.join(",") + "\n";
+        }
+
+        csv += "\n--- FEED ARRIVALS ---\nDate,Type,";
+        for(let s=1; s<=shedCount; s++) csv += `Bags S${s},`; csv += "Total Bags\n";
+        let feedRows = document.querySelectorAll('#feedBody tr');
+        for (let j = 0; j < feedRows.length; j++) {
+            let tr = feedRows[j]; let row = [ `"${formatDateForExport(tr.cells[0].querySelector('input').value)}"`, `"${tr.cells[1].querySelector('select').value}"` ];
+            for(let s=1; s<=shedCount; s++) row.push(`"${tr.cells[1+s].querySelector('input').value}"`);
+            row.push(`"${tr.querySelector('.feed-row-total').value}"`); csv += row.join(",") + "\n";
+        }
+
+        csv += "\n--- LIFTING (HARVEST) ---\nDate,";
+        for(let s=1; s<=shedCount; s++) csv += `Shed ${s},`; csv += "Boxes,Total Lifted,Total Wt,Avg Wt\n";
+        let liftRows = document.querySelectorAll('#liftBody tr');
+        for (let k = 0; k < liftRows.length; k++) {
+            let tr = liftRows[k]; let row = [ `"${formatDateForExport(tr.cells[0].querySelector('input').value)}"` ];
+            for(let s=1; s<=shedCount; s++) row.push(`"${tr.cells[s].querySelector('input').value}"`);
+            row.push(`"${tr.cells[1+shedCount].querySelector('input').value}"`, `"${tr.cells[1+shedCount+1].querySelector('input').value}"`, `"${tr.cells[1+shedCount+2].querySelector('input').value}"`, `"${tr.cells[1+shedCount+3].querySelector('input').value}"`);
+            csv += row.join(",") + "\n";
+        }
+
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `${currentBatch || 'Farm'}_Export.csv`; a.click();
+    }
+
+    function downloadBackup() { const blob = new Blob([JSON.stringify(buildDataObject(), null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `${currentBatch || 'Farm'}_Backup.json`; a.click(); }
+    function importBackup(event) { let f = event.target.files[0]; if(!f) return; let r = new FileReader(); r.onload = function(e) { try { let d = JSON.parse(e.target.result); if(d.settings && d.daily) { if(confirm(`Upload backup to '${currentBatch}'?`)) { cloudRef.set(d); alert("Restored!"); } } } catch(err) { alert("Invalid file."); } }; r.readAsText(f); event.target.value = ''; }
+
+    function openSummary() {
+        let tInit = parseInt(document.getElementById('tot_housed').innerText)||0, tMor = parseInt(document.getElementById('tot_daily').innerText)||0;
+        let tLift = parseInt(document.getElementById('lift_tot_birds')?.innerText)||0;
+        let surviving = tInit - tMor - tLift;
+        let tFeed = parseFloat(document.getElementById('tot_feed_consumed').innerText)||0, bagWt = parseFloat(document.getElementById('bagWt').value)||50;
+        
+        let lastWt = 0;
+        for (let i = totalDays; i >= 1; i--) { let w = document.getElementById('wt_'+i); if (w && parseFloat(w.value) > 0) { lastWt = parseFloat(w.value); break; } }
+        let fcr = (lastWt > 0 && surviving > 0) ? ((tFeed * bagWt) / (surviving * lastWt)).toFixed(3) : "N/A";
+
+        document.getElementById('summaryContent').innerHTML = `
+            <div class="summary-stat"><span>Housed Birds</span> <strong>${tInit}</strong></div>
+            <div class="summary-stat"><span>Total Mortality</span> <strong>${tMor} (${(tInit>0?(tMor/tInit*100).toFixed(2):0)}%)</strong></div>
+            <div class="summary-stat" style="color:var(--accent);"><span>Total Harvested</span> <strong>${tLift}</strong></div>
+            <div class="summary-stat"><span>Live Stock Remaining</span> <strong>${surviving}</strong></div>
+            <div class="summary-stat" style="margin-top:15px;"><span>Feed Consumed</span> <strong>${tFeed.toFixed(2)} bags</strong></div>
+            <div class="summary-stat" style="margin-top:15px;"><span>Final Avg Weight</span> <strong>${lastWt > 0 ? lastWt + " kg" : "N/A"}</strong></div>
+            <div class="summary-stat" style="background:#eaf2f8; padding:10px; margin-top:5px; border-radius:4px;"><span><strong>Batch FCR</strong></span> <strong style="font-size:18px;">${fcr}</strong></div>
+        `; document.getElementById('summaryModal').style.display = 'flex';
+    }
+    function closeSummary() { document.getElementById('summaryModal').style.display = 'none'; }
+</script>
+</body>
+</html>
