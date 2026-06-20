@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Smart Poultry Tracker (Secure Dashboard)</title>
     
+    <!-- PWA Manifest Link -->
     <link rel="manifest" href="manifest.json">
 
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     
+    <!-- Chart.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
@@ -30,9 +33,13 @@
         #loginScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--secondary); z-index: 9999; display: flex; align-items: center; justify-content: center; }
         .login-box { background: #fff; padding: 40px; border-radius: 10px; width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         
-        /* iOS ZOOM FIX: Inputs must be 16px */
+        /* Login & Dashboard Inputs (Kept at 16px for readability/mobile friendly) */
         .login-box input { width: 100%; margin-bottom: 15px; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
-        input[type="number"], input[type="text"], input[type="date"], select { width: 95%; min-width: 40px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 16px; text-align: center; }
+        .input-group input, .input-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+        
+        /* Table Inputs (Reverted to compact 13px for neat layout) */
+        input[type="number"], input[type="text"], input[type="date"], select { width: 95%; min-width: 40px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 13px; text-align: center; }
+        #feedBody select, #feedBody input { min-width: 90px; width: auto; font-size: 13px; }
         
         .forgot-link { display: block; margin-top: 15px; color: var(--accent); cursor: pointer; font-size: 14px; text-decoration: underline; background: none; border: none; width: 100%; }
         
@@ -42,7 +49,6 @@
         .dash-card h3 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; }
         .input-group { margin-bottom: 15px; }
         .input-group label { display: block; font-weight: bold; margin-bottom: 5px; color: var(--secondary); }
-        .input-group input, .input-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
         
         /* Main UI & Tables */
         .header-section { border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
@@ -53,14 +59,13 @@
         .section { background: #fff; padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); margin-bottom: 20px; }
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; padding-bottom: 5px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; min-width: 600px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; min-width: 600px; }
         th, td { border: 1px solid #bdc3c7; padding: 5px 3px; text-align: center; }
         th { background-color: var(--secondary); color: white; white-space: nowrap; padding: 6px; }
         
         /* Fixed Feed Layout */
         .tight-col { width: 1%; white-space: nowrap; }
         #feedHead th { width: 1%; white-space: nowrap; padding: 6px 15px; }
-        #feedBody select, #feedBody input { min-width: 90px; width: auto; font-size: 16px; }
         
         input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type="number"] { -moz-appearance: textfield; }
@@ -101,6 +106,7 @@
 </head>
 <body>
 
+<!-- Secure Auth Screen -->
 <div id="loginScreen">
     <div class="login-box">
         <h2>Farm Login 🔒</h2>
@@ -113,6 +119,7 @@
     </div>
 </div>
 
+<!-- LANDING PAGE DASHBOARD -->
 <div id="landingScreen" style="display: none;" class="container">
     <div class="header-section" style="border-bottom: none;">
         <h1>Poultry Dashboard ☁️</h1>
@@ -149,13 +156,15 @@
             
             <label style="display: block; font-weight: bold; color: var(--secondary); margin-top: 10px; margin-bottom: 10px;">Initial Housed Birds (Per Shed):</label>
             <div id="initShedContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                </div>
+                <!-- Dynamically injected Shed Inputs -->
+            </div>
         </div>
 
         <button class="btn-primary btn-large" onclick="openTrackerScreen()">➡️ Open Daily Log View</button>
     </div>
 </div>
 
+<!-- MAIN APPLICATION (DAILY LOG VIEW) -->
 <div id="appContainer" style="display: none;" class="container">
     <div class="header-section">
         <div style="display: flex; align-items: center; gap: 15px;">
@@ -168,6 +177,7 @@
         </div>
     </div>
 
+    <!-- Data Management Bar -->
     <div class="actions-bar">
         <strong>Data & Reports:</strong>
         <button class="btn-success" onclick="exportCSV()">📄 Export Excel</button>
@@ -178,6 +188,7 @@
         <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importBackup(event)">
     </div>
 
+    <!-- MAIN TRACKER GRID -->
     <div class="grid-layout">
         <div class="section">
             <h2>Daily Log</h2>
@@ -204,6 +215,7 @@
         </div>
     </div>
 
+    <!-- ANALYTICS DASHBOARD -->
     <div class="section" style="margin-top: 20px;">
         <h2>📊 Analytics Dashboard</h2>
         <div class="analytics-grid">
@@ -213,6 +225,7 @@
     </div>
 </div>
 
+<!-- Modal -->
 <div class="modal-overlay" id="summaryModal">
     <div class="modal-content">
         <h2>Batch Summary Report</h2>
@@ -223,7 +236,7 @@
 
 <script>
     // ==========================================
-    // 🔥 YOUR FIREBASE CONFIGURATION 🔥
+    // 🔥 ROBUST FIREBASE INITIALIZATION 🔥
     // ==========================================
     const firebaseConfig = {
         apiKey: "AIzaSyB9UXdBlmPi7MTC388W2D4353TqOvr98i8",
@@ -235,8 +248,6 @@
         appId: "1:641582598857:web:263050e6cea1f563961b18"
     };
 
-    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
-
     // Globals
     let totalDays = 45; 
     let shedCount = 2; 
@@ -245,14 +256,36 @@
     let isSyncingFromCloud = false; 
     let currentUid = null;
     let currentBatch = null;
-
     let healthChartInstance = null;
     let fcrChartInstance = null;
 
+    try {
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                currentUid = user.uid;
+                document.getElementById('loginScreen').style.display = 'none';
+                // Trigger batch loader which handles dynamic screen routing
+                loadUserBatches(user.uid);
+            } else {
+                currentUid = null;
+                document.getElementById('loginScreen').style.display = 'flex';
+                document.getElementById('landingScreen').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'none';
+            }
+        });
+    } catch (criticalError) {
+        window.onload = function() {
+            document.getElementById('authError').innerText = "SYSTEM ERROR: Your browser is blocking the database connection. If you are opening this HTML file directly on an iPhone, it will not work. You must upload this file to the web (like Netlify Drop) or use a local web server.";
+        };
+    }
+
     // ==========================================
-    // 🖥️ NAVIGATION CONTROLS
+    // 🖥️ NAVIGATION CONTROLS (With Memory)
     // ==========================================
     function openTrackerScreen() {
+        localStorage.setItem('poultryCurrentView', 'tracker');
         document.getElementById('landingScreen').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
         document.getElementById('displayBatchName').innerText = currentBatch || "N/A";
@@ -260,6 +293,7 @@
     }
 
     function backToDashboard() {
+        localStorage.setItem('poultryCurrentView', 'dashboard');
         document.getElementById('appContainer').style.display = 'none';
         document.getElementById('landingScreen').style.display = 'block';
     }
@@ -267,21 +301,6 @@
     // ==========================================
     // 🔐 AUTHENTICATION SYSTEM
     // ==========================================
-    firebase.auth().onAuthStateChanged(user => {
-        if (user) {
-            currentUid = user.uid;
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('landingScreen').style.display = 'block';
-            document.getElementById('appContainer').style.display = 'none';
-            loadUserBatches(user.uid);
-        } else {
-            currentUid = null;
-            document.getElementById('loginScreen').style.display = 'flex';
-            document.getElementById('landingScreen').style.display = 'none';
-            document.getElementById('appContainer').style.display = 'none';
-        }
-    });
-
     function resetError() { document.getElementById('authError').innerText = ""; document.getElementById('authError').style.color = "red"; }
 
     function login() {
@@ -289,7 +308,11 @@
         const e = document.getElementById('authEmail').value, p = document.getElementById('authPassword').value;
         if(!e || !p) { document.getElementById('authError').innerText = "Please enter email and password."; return; }
         document.getElementById('authError').innerText = "Logging in...";
-        firebase.auth().signInWithEmailAndPassword(e, p).catch(err => { document.getElementById('authError').innerText = err.message; });
+        try {
+            firebase.auth().signInWithEmailAndPassword(e, p).catch(err => { document.getElementById('authError').innerText = err.message; });
+        } catch(err) {
+            document.getElementById('authError').innerText = "Connection Failed. Ensure you are running this from a web server (https://), not a local file.";
+        }
     }
 
     function register() {
@@ -297,7 +320,11 @@
         const e = document.getElementById('authEmail').value, p = document.getElementById('authPassword').value;
         if(!e || !p) { document.getElementById('authError').innerText = "Please enter email and password."; return; }
         document.getElementById('authError').innerText = "Creating account...";
-        firebase.auth().createUserWithEmailAndPassword(e, p).catch(err => { document.getElementById('authError').innerText = err.message; });
+        try {
+            firebase.auth().createUserWithEmailAndPassword(e, p).catch(err => { document.getElementById('authError').innerText = err.message; });
+        } catch(err) {
+            document.getElementById('authError').innerText = "Connection Failed. Ensure you are running this from a web server (https://), not a local file.";
+        }
     }
 
     function resetPassword() {
@@ -311,20 +338,21 @@
         }).catch(err => { document.getElementById('authError').innerText = err.message; });
     }
 
-    function logout() { firebase.auth().signOut(); }
+    function logout() { 
+        firebase.auth().signOut(); 
+        localStorage.removeItem('poultryCurrentView'); 
+    }
 
     // ==========================================
     // 📂 DYNAMIC HTML RENDER ENGINE
     // ==========================================
     function renderDynamicStructure() {
-        // Render Initial Shed Inputs on Dashboard
         let initHtml = '';
         for(let s=1; s<=shedCount; s++) {
             initHtml += `<div class="input-group" style="margin-bottom:0;"><input type="number" id="initShed${s}" placeholder="Shed ${s} Total" oninput="runSync()"></div>`;
         }
         document.getElementById('initShedContainer').innerHTML = initHtml;
 
-        // Render Daily Log Table on Tracker
         let morH = '', stockH = '', feedH = '';
         for(let s=1; s<=shedCount; s++) {
             morH += `<th>Mor S${s}</th>`;
@@ -356,7 +384,6 @@
             </tr>
         `;
 
-        // Render Feed Arrivals on Tracker
         let fH = '', fF = '';
         for(let s=1; s<=shedCount; s++) {
             fH += `<th class="tight-col">Bags S${s}</th>`;
@@ -375,7 +402,7 @@
     }
 
     // ==========================================
-    // 📂 BATCH & CLOUD SYSTEM
+    // 📂 BATCH & CLOUD SYSTEM (With Memory)
     // ==========================================
     window.onload = function() {
         renderDynamicStructure();
@@ -396,18 +423,39 @@
                     let opt = document.createElement('option');
                     opt.value = b; opt.innerText = b; select.appendChild(opt);
                 }
-                if(!currentBatch || !list[currentBatch]) currentBatch = firstBatch;
+                
+                // Memory logic: Load the last batch the user was working on
+                let savedBatch = localStorage.getItem('poultryActiveBatch');
+                if (savedBatch && list[savedBatch]) {
+                    currentBatch = savedBatch;
+                } else if(!currentBatch || !list[currentBatch]) {
+                    currentBatch = firstBatch;
+                }
+                
                 select.value = currentBatch;
                 connectToBatchData(currentBatch);
+                
+                // Memory logic: Route them directly to tracker if they refreshed there
+                if (localStorage.getItem('poultryCurrentView') === 'tracker') {
+                    openTrackerScreen();
+                } else {
+                    document.getElementById('landingScreen').style.display = 'block';
+                    document.getElementById('appContainer').style.display = 'none';
+                }
+                
             } else {
                 createNewBatch("Batch 1");
+                document.getElementById('landingScreen').style.display = 'block';
             }
         });
     }
 
     function switchBatch() {
         let val = document.getElementById('batchSelect').value;
-        if(val) connectToBatchData(val);
+        if(val) {
+            localStorage.setItem('poultryActiveBatch', val);
+            connectToBatchData(val);
+        }
     }
 
     function createNewBatch(suggestedName) {
@@ -427,7 +475,10 @@
         updates[`users/${currentUid}/list/${name}`] = true;
         updates[`users/${currentUid}/data/${name}`] = blankData;
 
-        firebase.database().ref().update(updates).then(() => { currentBatch = name; });
+        firebase.database().ref().update(updates).then(() => { 
+            currentBatch = name; 
+            localStorage.setItem('poultryActiveBatch', name);
+        });
     }
 
     function deleteCurrentBatch() {
@@ -438,6 +489,7 @@
             updates[`users/${currentUid}/data/${currentBatch}`] = null;
             firebase.database().ref().update(updates);
             currentBatch = null;
+            localStorage.removeItem('poultryActiveBatch');
         }
     }
 
