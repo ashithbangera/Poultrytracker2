@@ -32,6 +32,8 @@
         /* Auth Screen */
         #loginScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--secondary); z-index: 9999; display: flex; align-items: center; justify-content: center; }
         .login-box { background: #fff; padding: 40px; border-radius: 10px; width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        
+        /* iOS ZOOM FIX: Login/Dashboard inputs must be 16px */
         .login-box input { width: 100%; margin-bottom: 15px; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
         .input-group input, .input-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
         
@@ -39,8 +41,8 @@
         input[type="number"], input[type="text"], input[type="date"], select { width: 95%; min-width: 40px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 13px; text-align: center; }
         input[readonly] { background-color: #f2f4f4; font-weight: 600; color: #333; border: none; }
         
-        /* Date & Calendar Sizing */
-        #dailyBody input[type="date"], #feedBody input[type="date"], #liftBody input[type="date"] { width: 120px !important; min-width: 120px !important; padding: 5px; }
+        /* UNIVERSAL CALENDAR STYLING */
+        input[type="date"] { width: 125px !important; min-width: 125px !important; padding: 5px 2px; letter-spacing: -0.5px; }
         
         /* Table Column Sizing */
         #feedHead th, #liftHead th { white-space: nowrap; padding: 6px 4px; }
@@ -315,6 +317,7 @@
         document.getElementById('landingScreen').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
         document.getElementById('displayBatchName').innerText = currentBatch || "N/A";
+        updateCharts(); // FORCE CHART TO DRAW IMMEDIATELY UPON BECOMING VISIBLE
         runSync(); 
     }
     function backToDashboard() {
@@ -475,7 +478,6 @@
     }
 
     function runSync() {
-        // Run core math
         calcFeed(); 
         let liftingData = calcLifting(); 
         calculateTable(liftingData); 
@@ -486,7 +488,6 @@
         document.getElementById('saveStatus').innerText = "⏳ Saving...";
         clearTimeout(saveTimeout); 
         saveTimeout = setTimeout(function() { 
-            // Update charts inside the 1-second timeout so typing doesn't crash the canvas!
             updateCharts();
             saveDataToCloud(); 
         }, 1000); 
@@ -563,18 +564,18 @@
             });
         } else { addLiftRow(); }
 
-        // Initial render forces charts to load immediately.
+        // Core math execution and immediate chart render
         calculateTable(calcLifting()); calcFeed(); calcRemaining(); updateCharts();
     }
 
     // ==========================================
-    // 📅 ADD/REMOVE ROW LOGIC (NATIVE CALENDARS)
+    // 📅 CALENDARS & ROW MANAGEMENT
     // ==========================================
     function generateDailyTable(days) { document.getElementById('dailyBody').innerHTML = ''; for (let i = 1; i <= days; i++) { appendDailyRowHTML(i); } totalDays = days; }
     
     function appendDailyRowHTML(i) {
         const tbody = document.getElementById('dailyBody');
-        // Native Date Type restores calendar picker!
+        // ALL DATE INPUTS ARE NOW NATIVE CALENDARS (<input type="date">)
         let dateInput = i === 1 ? `<input type="date" id="date_1" oninput="autoFillDates(); runSync();">` : `<input type="date" id="date_${i}" oninput="runSync()">`;
         const tr = document.createElement('tr'); tr.id = 'row_' + i;
         let morCells = '', stockCells = '', feedCells = '';
@@ -591,7 +592,7 @@
     function removeDailyRow() { if(totalDays > 1) { const tb = document.getElementById('dailyBody'); if(tb.lastChild) { tb.removeChild(tb.lastChild); totalDays--; runSync(); } } }
 
     function autoFillDates() {
-        const day1Val = document.getElementById('date_1').value; // Returns YYYY-MM-DD from native picker
+        const day1Val = document.getElementById('date_1').value; // Returns YYYY-MM-DD from calendar
         if (!day1Val) return; 
         const parts = day1Val.split('-'); if(parts.length !== 3) return;
         const yyyy = parseInt(parts[0], 10), mm = parseInt(parts[1], 10) - 1, dd = parseInt(parts[2], 10);
@@ -610,6 +611,7 @@
         ['Old feed', 'Pre-Starter', 'Starter', 'Finisher', 'Return Feed'].forEach(opt => { selectHtml += `<option value="${opt}" ${type===opt?'selected':''}>${opt}</option>`; });
         selectHtml += `</select>`;
         let bagCells = ''; for(let s=1; s<=shedCount; s++) { bagCells += `<td><input type="number" step="any" value="${bags[s-1] || ''}" oninput="runSync()"></td>`; }
+        // Type=date activates native calendar
         tr.innerHTML = `<td><input type="date" value="${date}" oninput="runSync()"></td><td>${selectHtml}</td>${bagCells}<td><input type="text" readonly></td>`;
         tbody.appendChild(tr); if(!isSyncingFromCloud) runSync();
     }
@@ -618,6 +620,7 @@
     function addLiftRow(date='', sheds=[], boxes='', tWt='') {
         const tbody = document.getElementById('liftBody'); const tr = document.createElement('tr');
         let shedCells = ''; for(let s=1; s<=shedCount; s++) { shedCells += `<td><input type="number" value="${sheds[s-1] || ''}" oninput="runSync()"></td>`; }
+        // Type=date activates native calendar
         tr.innerHTML = `<td><input type="date" value="${date}" oninput="runSync()"></td>${shedCells}<td><input type="number" value="${boxes}" oninput="runSync()"></td><td><input type="text" readonly></td><td><input type="number" step="any" value="${tWt}" oninput="runSync()"></td><td><input type="text" readonly></td>`;
         tbody.appendChild(tr); if(!isSyncingFromCloud) runSync();
     }
@@ -644,7 +647,7 @@
 
     function calcLifting() {
         const rows = document.getElementById('liftBody').querySelectorAll('tr');
-        let agg = {}; // Aggregates lifting by date
+        let agg = {}; 
         let grandSheds = []; for(let s=1; s<=shedCount; s++) grandSheds[s] = 0;
         let grandBoxes = 0, grandBirds = 0, grandWt = 0;
 
@@ -665,7 +668,6 @@
             row.cells[1+shedCount+1].querySelector('input').value = rowBirds > 0 ? rowBirds : '';
             row.cells[1+shedCount+3].querySelector('input').value = (rowBirds > 0 && totalWt > 0) ? (totalWt / rowBirds).toFixed(3) : '';
 
-            // Aggregate data for Daily Log insertion
             if(date) {
                 if(!agg[date]) agg[date] = { sheds: {}, totalWt: 0, totalBirds: 0 };
                 for(let s=1; s<=shedCount; s++) { agg[date].sheds[s] = (agg[date].sheds[s] || 0) + shedVals[s]; }
@@ -684,7 +686,7 @@
     }
 
     function calculateTable(liftData) {
-        if(!liftData) liftData = {}; // Failsafe
+        if(!liftData) liftData = {}; 
         let inits = [], currentS = [], totalMorS = [], consumedFeedS = [], totalHoused = 0;
         let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
 
@@ -700,11 +702,8 @@
             let dateVal = document.getElementById(`date_${i}`).value.trim();
             let liftedToday = (dateVal && liftData[dateVal]) ? liftData[dateVal] : null;
 
-            // Auto-fill and freeze AvgWt if lifting exists for this date
             let wtInput = document.getElementById(`wt_${i}`);
-            if (liftedToday && wtInput) {
-                wtInput.value = liftedToday.avgWt.toFixed(3);
-            }
+            if (liftedToday && wtInput) { wtInput.value = liftedToday.avgWt.toFixed(3); }
 
             for(let s=1; s<=shedCount; s++) {
                 let mInput = document.getElementById(`m${s}_${i}`); let fInput = document.getElementById(`f${s}_${i}`);
@@ -716,8 +715,6 @@
 
                 totalMorS[s] += m; consumedFeedS[s] += f;
                 dayMorTotal += m; dayFeedTotal += f;
-                
-                // Subtract Mortality AND Lifted birds from stock
                 currentS[s] -= (m + l); 
                 liveStock += currentS[s];
 
@@ -759,19 +756,28 @@
     // ==========================================
     function updateCharts() {
         const labels = [], mortalityData = [], feedData = [], fcrData = [];
+        
+        // Pushes all Days into the grid so the chart is never completely blank, even on Day 1
         for (let i = 1; i <= totalDays; i++) {
-            if(!document.getElementById('m1_' + i)) continue;
+            labels.push("Day " + i);
+            
+            if(!document.getElementById('m1_' + i)) {
+                mortalityData.push(null); feedData.push(null); fcrData.push(null); continue;
+            }
+            
             let dayMor = 0, dayFeed = 0, hasData = false;
             for(let s=1; s<=shedCount; s++) {
-                let m = document.getElementById(`m${s}_${i}`).value, f = document.getElementById(`f${s}_${i}`).value;
-                if(m !== '' || f !== '') hasData = true;
-                dayMor += parseInt(m) || 0; dayFeed += parseFloat(f) || 0;
+                let mInput = document.getElementById(`m${s}_${i}`); let fInput = document.getElementById(`f${s}_${i}`);
+                if(mInput && fInput && (mInput.value !== '' || fInput.value !== '')) hasData = true;
+                dayMor += parseInt(mInput ? mInput.value : 0) || 0; dayFeed += parseFloat(fInput ? fInput.value : 0) || 0;
             }
-            let fcr = document.getElementById('fcr_' + i).value;
-            if (hasData) {
-                labels.push("Day " + i); mortalityData.push(dayMor); feedData.push(dayFeed); fcrData.push(parseFloat(fcr) || null);
-            }
+            let fcrInput = document.getElementById('fcr_' + i); let fcr = fcrInput ? fcrInput.value : '';
+
+            mortalityData.push(hasData ? dayMor : null);
+            feedData.push(hasData ? dayFeed : null);
+            fcrData.push(hasData ? (parseFloat(fcr) || null) : null);
         }
+
         const ctxHealth = document.getElementById('healthChart').getContext('2d');
         if (healthChartInstance) healthChartInstance.destroy();
         healthChartInstance = new Chart(ctxHealth, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Daily Mortality', data: mortalityData, backgroundColor: 'rgba(192, 57, 43, 0.7)' }] }, options: { responsive: true, maintainAspectRatio: false } });
@@ -781,12 +787,12 @@
     }
 
     // ==========================================
-    // 💾 EXPORTS & REPORTS (Date Formatted explicitly for Excel)
+    // 💾 EXPORTS & REPORTS (Converts YYYY-MM-DD to DD/MM/YYYY for Excel)
     // ==========================================
     function formatDateForExport(dStr) {
         if(!dStr) return "";
         let p = dStr.split('-');
-        if(p.length === 3) return `${p[2]}/${p[1]}/${p[0]}`; // Converts YYYY-MM-DD to DD/MM/YYYY
+        if(p.length === 3) return `${p[2]}/${p[1]}/${p[0]}`; 
         return dStr;
     }
 
