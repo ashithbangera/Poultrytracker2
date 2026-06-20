@@ -5,15 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Smart Poultry Tracker (Secure Dashboard)</title>
     
-    <!-- PWA Manifest Link -->
     <link rel="manifest" href="manifest.json">
 
-    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     
-    <!-- Chart.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
@@ -39,6 +36,10 @@
         
         /* Table Inputs (Compact 13px for neat layout) */
         input[type="number"], input[type="text"], input[type="date"], select { width: 95%; min-width: 40px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 13px; text-align: center; }
+        #feedBody select, #feedBody input { min-width: 90px; width: auto; font-size: 13px; }
+        
+        /* Guaranteed width for exact DD/MM/YYYY formatting so it never cuts off */
+        input[placeholder="DD/MM/YYYY"] { min-width: 105px !important; letter-spacing: 0.5px; }
         
         .forgot-link { display: block; margin-top: 15px; color: var(--accent); cursor: pointer; font-size: 14px; text-decoration: underline; background: none; border: none; width: 100%; }
         
@@ -62,12 +63,10 @@
         th, td { border: 1px solid #bdc3c7; padding: 5px 3px; text-align: center; }
         th { background-color: var(--secondary); color: white; white-space: nowrap; padding: 6px; }
         
-        /* FIXED: Ultra-Tight Feed Arrivals Layout */
+        /* Tight Columns for extreme compactness */
         .tight-col { width: 1%; white-space: nowrap; }
-        #feedHead th { width: 1%; white-space: nowrap; padding: 6px 5px; } /* Reduced padding to squeeze headers */
-        #feedBody select { width: 100%; min-width: 100px; font-size: 13px; }
-        #feedBody input[placeholder="DD/MM/YYYY"] { width: 85px; min-width: 85px; }
-        #feedBody input[type="number"], #feedBody input[readonly] { width: 50px; min-width: 50px; padding: 5px 2px; } /* Locks bags/total to header width */
+        #dailyHead th { padding: 6px 5px; } 
+        #feedHead th { width: 1%; white-space: nowrap; padding: 6px 5px; }
         
         input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type="number"] { -moz-appearance: textfield; }
@@ -108,7 +107,6 @@
 </head>
 <body>
 
-<!-- Secure Auth Screen -->
 <div id="loginScreen">
     <div class="login-box">
         <h2>Farm Login 🔒</h2>
@@ -121,7 +119,6 @@
     </div>
 </div>
 
-<!-- LANDING PAGE DASHBOARD -->
 <div id="landingScreen" style="display: none;" class="container">
     <div class="header-section" style="border-bottom: none;">
         <h1>Poultry Dashboard ☁️</h1>
@@ -158,15 +155,13 @@
             
             <label style="display: block; font-weight: bold; color: var(--secondary); margin-top: 10px; margin-bottom: 10px;">Initial Housed Birds (Per Shed):</label>
             <div id="initShedContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <!-- Dynamically injected Shed Inputs -->
-            </div>
+                </div>
         </div>
 
         <button class="btn-primary btn-large" onclick="openTrackerScreen()">➡️ Open Daily Log View</button>
     </div>
 </div>
 
-<!-- MAIN APPLICATION (DAILY LOG VIEW) -->
 <div id="appContainer" style="display: none;" class="container">
     <div class="header-section">
         <div style="display: flex; align-items: center; gap: 15px;">
@@ -179,7 +174,6 @@
         </div>
     </div>
 
-    <!-- Data Management Bar -->
     <div class="actions-bar">
         <strong>Data & Reports:</strong>
         <button class="btn-success" onclick="exportCSV()">📄 Export Excel</button>
@@ -190,7 +184,6 @@
         <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importBackup(event)">
     </div>
 
-    <!-- MAIN TRACKER GRID -->
     <div class="grid-layout">
         <div class="section">
             <h2>Daily Log</h2>
@@ -217,7 +210,6 @@
         </div>
     </div>
 
-    <!-- ANALYTICS DASHBOARD -->
     <div class="section" style="margin-top: 20px;">
         <h2>📊 Analytics Dashboard</h2>
         <div class="analytics-grid">
@@ -227,7 +219,6 @@
     </div>
 </div>
 
-<!-- Modal -->
 <div class="modal-overlay" id="summaryModal">
     <div class="modal-content">
         <h2>Batch Summary Report</h2>
@@ -360,7 +351,8 @@
             stockH += `<th>Stock S${s}</th>`;
             feedH += `<th>Feed S${s}</th>`;
         }
-        document.getElementById('dailyHead').innerHTML = `<tr><th>Day</th><th style="width: 100px;">Date</th>${morH}<th>Tot Mor</th>${stockH}${feedH}<th>Avg Wt(kg)</th><th>FCR</th><th style="min-width: 150px;">Remarks</th></tr>`;
+        // FIXED: Tight classes applied to Avg Wt, FCR, and Remarks. Date explicitly handled.
+        document.getElementById('dailyHead').innerHTML = `<tr><th class="tight-col">Day</th><th class="tight-col">Date</th>${morH}<th>Tot Mor</th>${stockH}${feedH}<th class="tight-col">Avg Wt</th><th class="tight-col">FCR</th><th class="tight-col">Remarks</th></tr>`;
 
         let morF = '', stockF = '', feedF = '';
         for(let s=1; s<=shedCount; s++) {
@@ -605,7 +597,7 @@
         csv += "Total Mor,";
         for(let s=1; s<=shedCount; s++) csv += `Stock S${s},`;
         for(let s=1; s<=shedCount; s++) csv += `Feed S${s},`;
-        csv += "Avg Wt(kg),FCR,Remarks\n";
+        csv += "Avg Wt,FCR,Remarks\n";
 
         for (let i = 1; i <= totalDays; i++) {
             if(!document.getElementById('m1_' + i)) continue;
