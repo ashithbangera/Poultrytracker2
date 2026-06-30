@@ -19,12 +19,12 @@
     <style>
         :root {
             /* Fresh & Professional "Farm" Palette */
-            --primary: #1e3a8a; /* Deep blue for primary text */
-            --secondary: #059669; /* Emerald green for table headers */
-            --accent: #2563eb; /* Royal blue for primary buttons */
-            --success: #16a34a; /* Vibrant green for positive actions */
-            --danger: #dc2626; /* Clean red for destructive actions */
-            --bg: #eef2f6; /* Very soft blue-gray for the page background */
+            --primary: #1e3a8a; 
+            --secondary: #059669; 
+            --accent: #2563eb; 
+            --success: #16a34a; 
+            --danger: #dc2626; 
+            --bg: #eef2f6; 
             --card-border: #cbd5e1;
         }
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; color: #333; }
@@ -41,11 +41,18 @@
         input[type="number"], input[type="text"], input[type="date"], select { width: 95%; min-width: 40px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 13px; text-align: center; }
         input[readonly] { background-color: #f8fafc; font-weight: 600; color: #475569; border: none; }
         
-        /* Table Column Sizing */
-        #dailyBody input[type="date"], #feedBody input[type="date"], #liftBody input[type="date"] { width: 125px !important; min-width: 125px !important; padding: 5px 2px; letter-spacing: -0.5px; }
-        #feedHead th, #liftHead th { white-space: nowrap; padding: 6px 4px; }
-        #feedBody select { width: 120px !important; min-width: 120px !important; padding: 6px 2px; }
-        #feedBody input[type="text"], #feedBody input[readonly] { width: 65px !important; min-width: 65px !important; padding: 6px 2px; }
+        /* ==========================================
+           FIXED: SMART TABLE SIZING TO PREVENT OVERFLOW
+           ========================================== */
+        #dailyBody input[type="date"], #feedBody input[type="date"], #liftBody input[type="date"] { width: 115px !important; min-width: 115px !important; padding: 5px 2px; letter-spacing: -0.5px; }
+        #feedHead th, #liftHead th { white-space: nowrap; padding: 6px 2px; font-size: 12px; }
+        #feedBody select { width: 95px !important; min-width: 95px !important; padding: 5px 1px; font-size: 12px; }
+        
+        /* Forces Feed and Lift columns to stay compact */
+        #feedBody input[type="text"], #feedBody input[readonly], 
+        #liftBody input[type="number"], #liftBody input[type="text"], #liftBody input[readonly] { 
+            width: 60px !important; min-width: 60px !important; padding: 5px 2px; 
+        }
         
         .forgot-link { display: block; margin-top: 15px; color: var(--accent); cursor: pointer; font-size: 14px; text-decoration: underline; background: none; border: none; width: 100%; }
         
@@ -59,13 +66,16 @@
         /* Main UI */
         .header-section { border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
         .actions-bar { background: #f8fafc; padding: 10px 15px; border-radius: 6px; border: 1px solid var(--card-border); display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
-        .grid-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-        @media (max-width: 1300px) { .grid-layout { grid-template-columns: 1fr; } }
+        
+        /* FIXED: Rebalanced Grid so the Right Column has enough space */
+        .grid-layout { display: grid; grid-template-columns: 1.7fr 1.3fr; gap: 20px; }
+        @media (max-width: 1200px) { .grid-layout { grid-template-columns: 1fr; } }
         
         .section { background: #fff; padding: 15px; border: 1px solid var(--card-border); border-top: 4px solid var(--accent); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); margin-bottom: 20px; }
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; padding-bottom: 5px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; min-width: 600px; }
+        /* FIXED: Removed min-width: 600px so inventory tables can shrink naturally */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th, td { border: 1px solid #cbd5e1; padding: 5px 3px; text-align: center; }
         th { background-color: var(--secondary); color: white; white-space: nowrap; padding: 6px; font-weight: 600; letter-spacing: 0.5px; }
         
@@ -232,7 +242,7 @@
             </div>
 
             <!-- Lifting Section -->
-            <div class="section" style="border-top-color: var(--warning);">
+            <div class="section" style="border-top-color: #f59e0b;">
                 <h2>Chicken Lifting (Harvest)</h2>
                 <div class="table-responsive">
                     <table>
@@ -370,20 +380,18 @@
         return parseFloat(s) || 0;
     }
 
-    // Displays explicitly "X B, Y kg" or "X B & Y kg"
     function formatFeedStr(totalBagsFloat, bagWt, short=false) {
-        if(totalBagsFloat === 0) return short ? "0B 0kg" : "0 B & 0 kg";
+        if(totalBagsFloat === 0) return short ? "0B, 0kg" : "0 B & 0 kg";
         
         let b = Math.floor(totalBagsFloat + 0.0001); 
         let k = Math.round((totalBagsFloat - b) * bagWt);
         
-        // Rollover logic if math lands on exact boundary
         if (k >= bagWt) { 
             b += Math.floor(k / bagWt); 
             k = k % bagWt; 
         }
         
-        return short ? `${b}B ${k}kg` : `${b} B & ${k} kg`;
+        return short ? `${b}B, ${k}kg` : `${b} B & ${k} kg`;
     }
 
     // ==========================================
@@ -396,7 +404,6 @@
         }
         document.getElementById('initShedContainer').innerHTML = initHtml;
 
-        // Daily Log Head & Foot with Emojis
         let morH = '', stockH = '', feedH = '';
         for(let s=1; s<=shedCount; s++) {
             morH += `<th class="tight-col">💀 Mor S${s}</th>`; 
@@ -411,7 +418,7 @@
         }
         let totalCols = 6 + (shedCount * 3); 
         document.getElementById('dailyFoot').innerHTML = `
-            <tr class="totals-row"><td colspan="2" style="text-align: right; padding-right: 10px;">TOTALS:</td>${morF} <td id="tot_daily">0</td> ${stockF} ${feedF}<td id="tot_feed_daily">0B 0kg</td><td colspan="3"></td></tr>
+            <tr class="totals-row"><td colspan="2" style="text-align: right; padding-right: 10px;">TOTALS:</td>${morF} <td id="tot_daily">0</td> ${stockF} ${feedF}<td id="tot_feed_daily">0B, 0kg</td><td colspan="3"></td></tr>
             <tr class="status-row"><td colspan="${totalCols}" style="text-align: center; padding: 12px;">
                 <span style="margin: 0 10px;"><strong>Housed:</strong> <span id="tot_housed">0</span></span> | 
                 <span style="margin: 0 10px;"><strong>Stock:</strong> <span id="tot_in_stock">0</span></span> | 
@@ -420,15 +427,13 @@
             </td></tr>
         `;
 
-        // Feed Arrivals with Emojis
         let fH = '', fF = '';
         for(let s=1; s<=shedCount; s++) {
             fH += `<th class="tight-col">🌾 Bags S${s}</th>`; fF += `<td id="feed_tot_s${s}">0</td>`;
         }
         document.getElementById('feedHead').innerHTML = `<tr><th class="tight-col">📅 Date</th><th class="tight-col">🏷️ Type</th>${fH}<th class="tight-col">📊 Total</th></tr>`;
-        document.getElementById('feedFoot').innerHTML = `<tr class="totals-row"><td colspan="2" style="text-align: right; padding-right: 10px;">NET ARRIVALS:</td>${fF}<td id="feed_tot_all" data-val="0">0B 0kg</td></tr>`;
+        document.getElementById('feedFoot').innerHTML = `<tr class="totals-row"><td colspan="2" style="text-align: right; padding-right: 10px;">NET ARRIVALS:</td>${fF}<td id="feed_tot_all" data-val="0">0B, 0kg</td></tr>`;
 
-        // Lifting (Harvest) with Emojis
         let liftH = '', liftF = '';
         for(let s=1; s<=shedCount; s++) {
             liftH += `<th class="tight-col">🐔 Shed ${s} Birds</th>`;
@@ -655,10 +660,9 @@
 
     function addFeedRow(date='', type='', bags=[]) {
         const tbody = document.getElementById('feedBody'); const tr = document.createElement('tr');
-        // DROP DOWN NOW FEATURES EMOJIS!
         let selectHtml = `<select onchange="runSync()"><option value="" disabled ${type===''?'selected':''}>Select...</option>`;
         ['🌾 Old feed', '🐣 Pre-Starter', '🐥 Starter', '🐓 Finisher', '↩️ Return Feed'].forEach(opt => { 
-            let cleanType = type === opt.replace(/[^a-zA-Z -]/g, '').trim() ? opt : type; // Failsafe for older data
+            let cleanType = type === opt.replace(/[^a-zA-Z -]/g, '').trim() ? opt : type; 
             selectHtml += `<option value="${opt}" ${cleanType===opt?'selected':''}>${opt}</option>`; 
         });
         selectHtml += `</select>`;
@@ -697,7 +701,7 @@
                 if(!inputEl) continue;
                 let b = parseFeed(inputEl.value, bagWt); 
                 rowTotal += b;
-                if (type.includes('Return Feed')) { inventoryS[s] -= b; } else { inventoryS[s] += b; } // Updated for emoji
+                if (type.includes('Return Feed')) { inventoryS[s] -= b; } else { inventoryS[s] += b; } 
             }
             let totalBox = row.querySelector('.feed-row-total');
             if(totalBox) totalBox.value = rowTotal > 0 ? formatFeedStr(rowTotal, bagWt, true) : ''; 
@@ -860,7 +864,7 @@
         healthChartInstance = new Chart(ctxHealth, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Daily Mortality', data: mortalityData, backgroundColor: 'rgba(220, 38, 38, 0.8)' }] }, options: { responsive: true, maintainAspectRatio: false } });
         const ctxFcr = document.getElementById('fcrChart').getContext('2d');
         if (fcrChartInstance) fcrChartInstance.destroy();
-        fcrChartInstance = new Chart(ctxFcr, { type: 'line', data: { labels: labels, datasets: [ { type: 'bar', label: 'Feed (Bags)', data: feedData, backgroundColor: 'rgba(37, 99, 235, 0.7)', yAxisID: 'y' }, { type: 'line', label: 'FCR Trend', data: fcrData, borderColor: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.2)', borderWidth: 3, yAxisID: 'y1' } ] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { position: 'left' }, y1: { position: 'right', grid: {drawOnChartArea: false} } } } });
+        fcrChartInstance = new Chart(ctxFcr, { type: 'line', data: { labels: labels, datasets: [ { type: 'bar', label: 'Feed (Bags)', data: feedData, backgroundColor: 'rgba(37, 99, 235, 0.7)', yAxisID: 'y' }, { type: 'line', label: 'Manual FCR Trend', data: fcrData, borderColor: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.2)', borderWidth: 3, yAxisID: 'y1' } ] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { position: 'left' }, y1: { position: 'right', grid: {drawOnChartArea: false} } } } });
     }
 
     // ==========================================
@@ -874,7 +878,6 @@
         let liftData = calcLifting();
         let tLift = parseInt(document.getElementById('summary_lift_birds')?.innerText)||0;
         
-        // Exact Livability: (Total Housed - Total Mortality) / Total Housed
         let survivingLiveStock = tInit - tMor; 
         let livability = tInit > 0 ? ((survivingLiveStock / tInit) * 100).toFixed(2) : 0;
 
@@ -904,7 +907,6 @@
             }
         }
 
-        // True FCR Calculation
         let tFeedKg = feedUpToLastEvent * bagWt;
         let tLiftWt = parseFloat(document.getElementById('summary_lift_wt').innerText)||0;
         
@@ -915,17 +917,17 @@
         let finalFcr = (totalBiomass > 0) ? (tFeedKg / totalBiomass).toFixed(3) : "N/A";
 
         document.getElementById('summaryContent').innerHTML = `
-            <div class="summary-stat"><span>Initial Housed</span> <strong>${tInit} birds</strong></div>
-            <div class="summary-stat"><span>Total Mortality</span> <strong>${tMor} birds</strong></div>
-            <div class="summary-stat"><span>Livability</span> <strong style="color:var(--success);">${livability}%</strong></div>
-            <div class="summary-stat" style="border-top: 2px solid #eee; margin-top: 10px; padding-top: 10px;"><span>Total Harvested</span> <strong>${tLift} birds</strong></div>
-            <div class="summary-stat"><span>Total Lifted Weight</span> <strong>${tLiftWt.toFixed(2)} kg</strong></div>
+            <div class="summary-stat"><span>🐔 Initial Housed</span> <strong>${tInit} birds</strong></div>
+            <div class="summary-stat"><span>💀 Total Mortality</span> <strong>${tMor} birds</strong></div>
+            <div class="summary-stat"><span>✅ Livability</span> <strong style="color:var(--success);">${livability}%</strong></div>
+            <div class="summary-stat" style="border-top: 2px solid #eee; margin-top: 10px; padding-top: 10px;"><span>🚚 Total Harvested</span> <strong>${tLift} birds</strong></div>
+            <div class="summary-stat"><span>⚖️ Total Lifted Weight</span> <strong>${tLiftWt.toFixed(2)} kg</strong></div>
             
-            <div class="summary-stat" style="border-top: 2px solid #eee; margin-top: 10px; padding-top: 10px;"><span>Feed up to Event (Day ${lastEventDay})</span> <strong>${formatFeedStr(feedUpToLastEvent, bagWt, false)}</strong></div>
-            <div class="summary-stat"><span>Latest Manual Avg Weight</span> <strong>${latestAvgWt > 0 ? latestAvgWt + " kg" : "N/A"}</strong></div>
-            <div class="summary-stat"><span>Calculated Total Biomass</span> <strong>${totalBiomass > 0 ? totalBiomass.toFixed(2) + " kg" : "N/A"}</strong></div>
+            <div class="summary-stat" style="border-top: 2px solid #eee; margin-top: 10px; padding-top: 10px;"><span>🌾 Feed up to Event (Day ${lastEventDay})</span> <strong>${formatFeedStr(feedUpToLastEvent, bagWt, false)}</strong></div>
+            <div class="summary-stat"><span>🎯 Latest Manual Avg Wt</span> <strong>${latestAvgWt > 0 ? latestAvgWt + " kg" : "N/A"}</strong></div>
+            <div class="summary-stat"><span>📊 Calc. Total Biomass</span> <strong>${totalBiomass > 0 ? totalBiomass.toFixed(2) + " kg" : "N/A"}</strong></div>
             <div class="summary-stat" style="background:#eaf2f8; padding:10px; margin-top:5px; border-radius:4px;">
-                <span><strong>TRUE BATCH FCR</strong></span> <strong style="font-size:18px; color:var(--danger);">${finalFcr}</strong>
+                <span><strong>📈 TRUE BATCH FCR</strong></span> <strong style="font-size:18px; color:var(--danger);">${finalFcr}</strong>
             </div>
         `; document.getElementById('summaryModal').style.display = 'flex';
     }
