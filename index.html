@@ -42,9 +42,9 @@
         input[readonly] { background-color: #f8fafc; font-weight: 600; color: #475569; border: none; }
         
         /* Table Column Sizing - Ultra Tight to prevent Overflow */
-        #dailyBody input[type="date"], #feedBody input[type="date"], #liftBody input[type="date"] { width: 115px !important; min-width: 115px !important; padding: 5px 1px; letter-spacing: -0.5px; }
+        #dailyBody input[type="date"], #feedBody input[type="date"], #liftBody input[type="date"] { width: 110px !important; min-width: 110px !important; padding: 5px 1px; letter-spacing: -0.5px; }
         #feedHead th, #liftHead th { white-space: nowrap; padding: 6px 2px; }
-        #feedBody select { width: 95px !important; min-width: 95px !important; padding: 6px 1px; font-size: 12px; }
+        #feedBody select { width: 95px !important; min-width: 95px !important; padding: 6px 1px; }
         #feedBody input[type="text"], #feedBody input[readonly], #liftBody input[type="number"], #liftBody input[type="text"], #liftBody input[readonly] { width: 55px !important; min-width: 55px !important; padding: 6px 2px; }
         
         .forgot-link { display: block; margin-top: 15px; color: var(--accent); cursor: pointer; font-size: 14px; text-decoration: underline; background: none; border: none; width: 100%; }
@@ -59,13 +59,14 @@
         /* Main UI */
         .header-section { border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
         .actions-bar { background: #f8fafc; padding: 10px 15px; border-radius: 6px; border: 1px solid var(--card-border); display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
-        .grid-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-        @media (max-width: 1300px) { .grid-layout { grid-template-columns: 1fr; } }
+        
+        /* SMARTER GRID LAYOUT: Prevents tables from squishing out of bounds */
+        .grid-layout { display: grid; grid-template-columns: 1.6fr 1.4fr; gap: 20px; }
+        @media (max-width: 1350px) { .grid-layout { grid-template-columns: 1fr; } }
         
         .section { background: #fff; padding: 15px; border: 1px solid var(--card-border); border-top: 4px solid var(--accent); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); margin-bottom: 20px; }
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; padding-bottom: 5px; }
         
-        /* FIXED: Removed the 600px minimum width so it sizes naturally to the grid */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th, td { border: 1px solid #cbd5e1; padding: 5px 3px; text-align: center; }
         th { background-color: var(--secondary); color: white; white-space: nowrap; padding: 6px; font-weight: 600; letter-spacing: 0.5px; }
@@ -129,7 +130,7 @@
 <!-- LANDING PAGE DASHBOARD -->
 <div id="landingScreen" style="display: none;" class="container">
     <div class="header-section" style="border-bottom: none;">
-        <h1>Poultry Dashboard ☁️</h1>
+        <h1>Poultry Dashboard</h1>
         <button class="btn-outline" onclick="logout()">Log Out</button>
     </div>
     
@@ -177,7 +178,7 @@
             <h1 style="margin: 0;">Batch: <span id="displayBatchName" style="color: var(--accent);"></span></h1>
         </div>
         <div style="display: flex; align-items: center; gap: 10px;">
-            <span class="save-indicator" id="saveStatus">🟢 Connected</span>
+            <span class="save-indicator" id="saveStatus">Connected</span>
             <button class="btn-danger" style="padding: 10px 15px; font-size: 15px;" onclick="endBatchSummary()">🛑 END BATCH REPORT</button>
         </div>
     </div>
@@ -263,7 +264,7 @@
 <!-- Modal -->
 <div class="modal-overlay" id="summaryModal">
     <div class="modal-content">
-        <h2>🛑 Final End of Batch Report</h2>
+        <h2>End of Batch Report</h2>
         <div id="summaryContent"></div>
         <button class="btn-primary" style="margin-top: 20px; width: 100%;" onclick="closeSummary()">Close Report</button>
     </div>
@@ -395,13 +396,14 @@
         }
         document.getElementById('initShedContainer').innerHTML = initHtml;
 
+        // Daily Log - Clean Text
         let morH = '', stockH = '', feedH = '';
         for(let s=1; s<=shedCount; s++) {
-            morH += `<th class="tight-col">💀 Mor S${s}</th>`; 
-            stockH += `<th>🐔 Stock S${s}</th>`; 
-            feedH += `<th>🌾 Feed S${s}</th>`;
+            morH += `<th class="tight-col">Mor S${s}</th>`; 
+            stockH += `<th>Stock S${s}</th>`; 
+            feedH += `<th>Feed S${s}</th>`;
         }
-        document.getElementById('dailyHead').innerHTML = `<tr><th class="tight-col">📅 Day</th><th class="tight-col">📆 Date</th>${morH}<th class="tight-col">💀 Tot Mor</th>${stockH}${feedH}<th class="tight-col">🌾 Tot Feed</th><th class="tight-col">⚖️ Avg Wt</th><th class="tight-col">📈 FCR</th><th class="tight-col">📝 Remarks</th></tr>`;
+        document.getElementById('dailyHead').innerHTML = `<tr><th class="tight-col">Day</th><th class="tight-col">Date</th>${morH}<th class="tight-col">Tot Mor</th>${stockH}${feedH}<th class="tight-col">Tot Feed</th><th class="tight-col">Avg Wt</th><th class="tight-col">FCR</th><th class="tight-col">Remarks</th></tr>`;
 
         let morF = '', stockF = '', feedF = '';
         for(let s=1; s<=shedCount; s++) {
@@ -418,21 +420,22 @@
             </td></tr>
         `;
 
+        // Feed Arrivals - Clean Text
         let fH = '', fF = '';
         for(let s=1; s<=shedCount; s++) {
-            fH += `<th class="tight-col">🌾 Bags S${s}</th>`; fF += `<td id="feed_tot_s${s}">0</td>`;
+            fH += `<th class="tight-col">Bags S${s}</th>`; fF += `<td id="feed_tot_s${s}">0</td>`;
         }
-        document.getElementById('feedHead').innerHTML = `<tr><th class="tight-col">📅 Date</th><th class="tight-col">🏷️ Type</th>${fH}<th class="tight-col">📊 Total</th></tr>`;
+        document.getElementById('feedHead').innerHTML = `<tr><th class="tight-col">Date</th><th class="tight-col">Type</th>${fH}<th class="tight-col">Total</th></tr>`;
         document.getElementById('feedFoot').innerHTML = `<tr class="totals-row"><td colspan="2" style="text-align: right; padding-right: 10px;">NET ARRIVALS:</td>${fF}<td id="feed_tot_all" data-val="0">0B, 0kg</td></tr>`;
 
-        // FIXED: Squeezed Headers for Harvest Tab to fit columns
+        // Lifting (Harvest) - Clean Text & Squeezed Headers
         let liftH = '', liftF = '';
         for(let s=1; s<=shedCount; s++) {
-            liftH += `<th class="tight-col">🐔 S${s}</th>`;
+            liftH += `<th class="tight-col">S${s}</th>`;
             liftF += `<td id="lift_tot_s${s}">0</td>`;
         }
         let liftTotalCols = 5 + shedCount;
-        document.getElementById('liftHead').innerHTML = `<tr><th class="tight-col">📅 Date</th>${liftH}<th class="tight-col">📦 Boxes</th><th class="tight-col">🚚 Birds</th><th class="tight-col">⚖️ Wt(kg)</th><th class="tight-col">🎯 Avg Wt</th></tr>`;
+        document.getElementById('liftHead').innerHTML = `<tr><th class="tight-col">Date</th>${liftH}<th class="tight-col">Boxes</th><th class="tight-col">Birds</th><th class="tight-col">Wt(kg)</th><th class="tight-col">Avg Wt</th></tr>`;
         document.getElementById('liftFoot').innerHTML = `
             <tr class="totals-row"><td style="text-align: right; padding-right: 10px;">LIFTED:</td>${liftF}<td id="lift_tot_boxes">0</td><td id="lift_tot_birds">0</td><td id="lift_tot_wt">0</td><td id="lift_avg_wt">0.000</td></tr>
             <tr class="status-row"><td colspan="${liftTotalCols}" style="text-align: center; padding: 12px; color: #1e3a8a;">
@@ -514,10 +517,10 @@
     function connectToBatchData(batchName) {
         currentBatch = batchName; if(cloudRef) cloudRef.off();
         cloudRef = firebase.database().ref(`users/${currentUid}/data/${batchName}`);
-        document.getElementById('saveStatus').innerText = "☁️ Loading..."; document.getElementById('displayBatchName').innerText = batchName;
+        document.getElementById('saveStatus').innerText = "Loading..."; document.getElementById('displayBatchName').innerText = batchName;
         cloudRef.on('value', snap => {
             let data = snap.val();
-            if(data) { isSyncingFromCloud = true; loadCloudData(data); isSyncingFromCloud = false; document.getElementById('saveStatus').innerText = "🟢 Live Sync: " + batchName; }
+            if(data) { isSyncingFromCloud = true; loadCloudData(data); isSyncingFromCloud = false; document.getElementById('saveStatus').innerText = "Connected"; }
         });
     }
 
@@ -529,7 +532,7 @@
 
         if (isSyncingFromCloud || !cloudRef) return; 
         
-        document.getElementById('saveStatus').innerText = "⏳ Saving...";
+        document.getElementById('saveStatus').innerText = "Saving...";
         clearTimeout(saveTimeout); 
         saveTimeout = setTimeout(function() { 
             updateCharts();
@@ -573,8 +576,8 @@
 
     function saveDataToCloud() {
         if(!cloudRef) return;
-        cloudRef.set(buildDataObject()).then(() => { document.getElementById('saveStatus').innerText = "🟢 Live Sync: " + currentBatch; })
-        .catch(err => { document.getElementById('saveStatus').innerText = "❌ Sync Error"; });
+        cloudRef.set(buildDataObject()).then(() => { document.getElementById('saveStatus').innerText = "Connected"; })
+        .catch(err => { document.getElementById('saveStatus').innerText = "Sync Error"; });
     }
 
     function loadCloudData(data) {
@@ -652,9 +655,10 @@
 
     function addFeedRow(date='', type='', bags=[]) {
         const tbody = document.getElementById('feedBody'); const tr = document.createElement('tr');
+        // REVERTED: Clean text dropdown options
         let selectHtml = `<select onchange="runSync()"><option value="" disabled ${type===''?'selected':''}>Select...</option>`;
-        ['🌾 Old feed', '🐣 Pre-Starter', '🐥 Starter', '🐓 Finisher', '↩️ Return Feed'].forEach(opt => { 
-            let cleanType = type === opt.replace(/[^a-zA-Z -]/g, '').trim() ? opt : type; 
+        ['Old feed', 'Pre-Starter', 'Starter', 'Finisher', 'Return Feed'].forEach(opt => { 
+            let cleanType = type === opt ? opt : type; 
             selectHtml += `<option value="${opt}" ${cleanType===opt?'selected':''}>${opt}</option>`; 
         });
         selectHtml += `</select>`;
@@ -909,17 +913,17 @@
         let finalFcr = (totalBiomass > 0) ? (tFeedKg / totalBiomass).toFixed(3) : "N/A";
 
         document.getElementById('summaryContent').innerHTML = `
-            <div class="summary-stat"><span>🐔 Initial Housed</span> <strong>${tInit} birds</strong></div>
-            <div class="summary-stat"><span>💀 Total Mortality</span> <strong>${tMor} birds</strong></div>
-            <div class="summary-stat"><span>✅ Livability</span> <strong style="color:var(--success);">${livability}%</strong></div>
-            <div class="summary-stat" style="border-top: 2px solid #eee; margin-top: 10px; padding-top: 10px;"><span>🚚 Total Harvested</span> <strong>${tLift} birds</strong></div>
-            <div class="summary-stat"><span>⚖️ Total Lifted Weight</span> <strong>${tLiftWt.toFixed(2)} kg</strong></div>
+            <div class="summary-stat"><span>Initial Housed</span> <strong>${tInit} birds</strong></div>
+            <div class="summary-stat"><span>Total Mortality</span> <strong>${tMor} birds</strong></div>
+            <div class="summary-stat"><span>Livability</span> <strong style="color:var(--success);">${livability}%</strong></div>
+            <div class="summary-stat" style="border-top: 2px solid #eee; margin-top: 10px; padding-top: 10px;"><span>Total Harvested</span> <strong>${tLift} birds</strong></div>
+            <div class="summary-stat"><span>Total Lifted Weight</span> <strong>${tLiftWt.toFixed(2)} kg</strong></div>
             
-            <div class="summary-stat" style="border-top: 2px solid #eee; margin-top: 10px; padding-top: 10px;"><span>🌾 Feed up to Event (Day ${lastEventDay})</span> <strong>${formatFeedStr(feedUpToLastEvent, bagWt, false)}</strong></div>
-            <div class="summary-stat"><span>🎯 Latest Manual Avg Wt</span> <strong>${latestAvgWt > 0 ? latestAvgWt + " kg" : "N/A"}</strong></div>
-            <div class="summary-stat"><span>📊 Calc. Total Biomass</span> <strong>${totalBiomass > 0 ? totalBiomass.toFixed(2) + " kg" : "N/A"}</strong></div>
+            <div class="summary-stat" style="border-top: 2px solid #eee; margin-top: 10px; padding-top: 10px;"><span>Feed up to Event (Day ${lastEventDay})</span> <strong>${formatFeedStr(feedUpToLastEvent, bagWt, false)}</strong></div>
+            <div class="summary-stat"><span>Latest Manual Avg Wt</span> <strong>${latestAvgWt > 0 ? latestAvgWt + " kg" : "N/A"}</strong></div>
+            <div class="summary-stat"><span>Calc. Total Biomass</span> <strong>${totalBiomass > 0 ? totalBiomass.toFixed(2) + " kg" : "N/A"}</strong></div>
             <div class="summary-stat" style="background:#eaf2f8; padding:10px; margin-top:5px; border-radius:4px;">
-                <span><strong>📈 TRUE BATCH FCR</strong></span> <strong style="font-size:18px; color:var(--danger);">${finalFcr}</strong>
+                <span><strong>TRUE BATCH FCR</strong></span> <strong style="font-size:18px; color:var(--danger);">${finalFcr}</strong>
             </div>
         `; document.getElementById('summaryModal').style.display = 'flex';
     }
