@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smart Poultry Tracker (Secure Dashboard)</title>
+    <title>Smart Poultry Tracker (Harvest Edition)</title>
     
     <link rel="manifest" href="manifest.json">
 
@@ -40,7 +40,7 @@
         #dailyBody input[type="date"], #feedBody input[type="date"], #liftBody input[type="date"] { width: 125px !important; min-width: 125px !important; padding: 5px 2px; letter-spacing: -0.5px; }
         #feedHead th, #liftHead th { white-space: nowrap; padding: 6px 4px; }
         #feedBody select { width: 100px !important; min-width: 100px !important; padding: 6px 2px; }
-        #feedBody input[type="text"], #feedBody input[readonly] { width: 55px !important; min-width: 55px !important; padding: 6px 2px; }
+        #feedBody input[type="text"], #feedBody input[readonly] { width: 65px !important; min-width: 65px !important; padding: 6px 2px; }
         
         .forgot-link { display: block; margin-top: 15px; color: var(--accent); cursor: pointer; font-size: 14px; text-decoration: underline; background: none; border: none; width: 100%; }
         
@@ -54,8 +54,8 @@
         /* Main UI */
         .header-section { border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
         .actions-bar { background: #fdfefe; padding: 10px 15px; border-radius: 6px; border: 1px solid #d5dbdb; display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
-        .grid-layout { display: grid; grid-template-columns: 2.3fr 1fr; gap: 20px; }
-        @media (max-width: 1200px) { .grid-layout { grid-template-columns: 1fr; } }
+        .grid-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        @media (max-width: 1300px) { .grid-layout { grid-template-columns: 1fr; } }
         
         .section { background: #fff; padding: 15px; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); margin-bottom: 20px; }
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; padding-bottom: 5px; }
@@ -152,8 +152,7 @@
             </div>
             
             <label style="display: block; font-weight: bold; color: var(--secondary); margin-top: 10px; margin-bottom: 10px;">Initial Housed Birds (Per Shed):</label>
-            <div id="initShedContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                </div>
+            <div id="initShedContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
         </div>
 
         <button class="btn-primary btn-large" onclick="openTrackerScreen()">➡️ Open Daily Log View</button>
@@ -168,7 +167,7 @@
         </div>
         <div style="display: flex; align-items: center; gap: 10px;">
             <span class="save-indicator" id="saveStatus">🟢 Connected</span>
-            <button class="btn-danger" onclick="endBatchSummary()">🛑 End Batch Summary</button>
+            <button class="btn-danger" style="padding: 10px 15px; font-size: 15px;" onclick="endBatchSummary()">🛑 END BATCH REPORT</button>
         </div>
     </div>
 
@@ -245,7 +244,7 @@
 
 <div class="modal-overlay" id="summaryModal">
     <div class="modal-content">
-        <h2>End of Batch Report</h2>
+        <h2>🛑 Final End of Batch Report</h2>
         <div id="summaryContent"></div>
         <button class="btn-primary" style="margin-top: 20px; width: 100%;" onclick="closeSummary()">Close Report</button>
     </div>
@@ -310,6 +309,7 @@
         document.getElementById('landingScreen').style.display = 'block';
     }
     function resetError() { document.getElementById('authError').innerText = ""; document.getElementById('authError').style.color = "red"; }
+    
     function login() {
         resetError();
         const e = document.getElementById('authEmail').value, p = document.getElementById('authPassword').value;
@@ -335,7 +335,7 @@
     function logout() { firebase.auth().signOut(); localStorage.removeItem('poultryCurrentView'); }
 
     // ==========================================
-    // 🚜 CUSTOM LOOSE FEED PARSER
+    // 🚜 CUSTOM LOOSE FEED PARSER & FORMATTER
     // ==========================================
     function parseFeed(val, bagWt) {
         if (!val) return 0;
@@ -347,6 +347,22 @@
             return bags + (kg / bagWt);
         }
         return parseFloat(s) || 0;
+    }
+
+    // Displays explicitly "X Bags & Y Kg" or short versions for tight tables
+    function formatFeedStr(totalBagsFloat, bagWt, short=false) {
+        if(totalBagsFloat === 0) return short ? "0B 0kg" : "0 Bags & 0 Kg";
+        
+        let b = Math.floor(totalBagsFloat + 0.0001); // Precision adjustment
+        let k = Math.round((totalBagsFloat - b) * bagWt);
+        
+        // Failsafe Math Rollover (e.g. if parsing hit exactly 50kg)
+        if (k >= bagWt) { 
+            b += Math.floor(k / bagWt); 
+            k = k % bagWt; 
+        }
+        
+        return short ? `${b}B ${k}kg` : `${b} Bags & ${k} Kg`;
     }
 
     // ==========================================
@@ -363,20 +379,21 @@
         for(let s=1; s<=shedCount; s++) {
             morH += `<th>Mor S${s}</th>`; stockH += `<th>Stock S${s}</th>`; feedH += `<th>Feed S${s}</th>`;
         }
-        document.getElementById('dailyHead').innerHTML = `<tr><th class="tight-col">Day</th><th class="tight-col">Date</th>${morH}<th>Tot Mor</th>${stockH}${feedH}<th class="tight-col">Avg Wt</th><th class="tight-col">FCR</th><th class="tight-col">Remarks</th></tr>`;
+        // Added Tot Feed column
+        document.getElementById('dailyHead').innerHTML = `<tr><th class="tight-col">Day</th><th class="tight-col">Date</th>${morH}<th>Tot Mor</th>${stockH}${feedH}<th class="tight-col">Tot Feed</th><th class="tight-col">Avg Wt</th><th class="tight-col">FCR</th><th class="tight-col">Remarks</th></tr>`;
 
         let morF = '', stockF = '', feedF = '';
         for(let s=1; s<=shedCount; s++) {
             morF += `<td id="tot_m${s}">0</td>`; stockF += `<td id="tot_s${s}_stock">0</td>`; feedF += `<td id="tot_f${s}">0</td>`;
         }
-        let totalCols = 5 + (shedCount * 3); 
+        let totalCols = 6 + (shedCount * 3); 
         document.getElementById('dailyFoot').innerHTML = `
-            <tr class="totals-row"><td colspan="2" style="text-align: right; padding-right: 10px;">TOTALS:</td>${morF} <td id="tot_daily">0</td> ${stockF} ${feedF}<td colspan="3"></td></tr>
+            <tr class="totals-row"><td colspan="2" style="text-align: right; padding-right: 10px;">TOTALS:</td>${morF} <td id="tot_daily">0</td> ${stockF} ${feedF}<td id="tot_feed_daily">0B 0kg</td><td colspan="3"></td></tr>
             <tr class="status-row"><td colspan="${totalCols}" style="text-align: center; padding: 12px;">
                 <span style="margin: 0 10px;"><strong>Housed:</strong> <span id="tot_housed">0</span></span> | 
                 <span style="margin: 0 10px;"><strong>Stock:</strong> <span id="tot_in_stock">0</span></span> | 
-                <span style="margin: 0 10px;"><strong>Consumed:</strong> <span id="tot_feed_consumed" data-val="0">0 Bags</span></span> | 
-                <span style="margin: 0 10px;"><strong>Remaining:</strong> <span id="tot_feed_remaining">0 Bags</span></span>
+                <span style="margin: 0 10px;"><strong>Consumed:</strong> <span id="tot_feed_consumed" data-val="0">0 Bags & 0 Kg</span></span> | 
+                <span style="margin: 0 10px;"><strong>Remaining:</strong> <span id="tot_feed_remaining">0 Bags & 0 Kg</span></span>
             </td></tr>
         `;
 
@@ -385,15 +402,24 @@
             fH += `<th class="tight-col">Bags S${s}</th>`; fF += `<td id="feed_tot_s${s}">0</td>`;
         }
         document.getElementById('feedHead').innerHTML = `<tr><th class="tight-col">Date</th><th class="tight-col">Type</th>${fH}<th class="tight-col">Total</th></tr>`;
-        document.getElementById('feedFoot').innerHTML = `<tr class="totals-row"><td colspan="2" style="text-align: right; padding-right: 10px;">NET:</td>${fF}<td id="feed_tot_all" data-val="0">0 Bags</td></tr>`;
+        document.getElementById('feedFoot').innerHTML = `<tr class="totals-row"><td colspan="2" style="text-align: right; padding-right: 10px;">NET ARRIVALS:</td>${fF}<td id="feed_tot_all" data-val="0">0B 0kg</td></tr>`;
 
         let liftH = '', liftF = '';
         for(let s=1; s<=shedCount; s++) {
             liftH += `<th class="tight-col">Shed ${s} Birds</th>`;
             liftF += `<td id="lift_tot_s${s}">0</td>`;
         }
+        // Added Harvest Status Row to Lift Table Footer
+        let liftTotalCols = 5 + shedCount;
         document.getElementById('liftHead').innerHTML = `<tr><th class="tight-col">Date</th>${liftH}<th class="tight-col">Boxes</th><th class="tight-col">Total Birds</th><th class="tight-col">Total Wt(kg)</th><th class="tight-col">Avg Wt</th></tr>`;
-        document.getElementById('liftFoot').innerHTML = `<tr class="totals-row"><td style="text-align: right; padding-right: 10px;">LIFTED:</td>${liftF}<td id="lift_tot_boxes">0</td><td id="lift_tot_birds">0</td><td id="lift_tot_wt">0</td><td id="lift_avg_wt">0.000</td></tr>`;
+        document.getElementById('liftFoot').innerHTML = `
+            <tr class="totals-row"><td style="text-align: right; padding-right: 10px;">LIFTED:</td>${liftF}<td id="lift_tot_boxes">0</td><td id="lift_tot_birds">0</td><td id="lift_tot_wt">0</td><td id="lift_avg_wt">0.000</td></tr>
+            <tr class="status-row"><td colspan="${liftTotalCols}" style="text-align: center; padding: 12px; color: var(--danger);">
+                <span style="margin: 0 15px;"><strong>Total Harvested:</strong> <span id="summary_lift_birds">0</span> Birds</span> | 
+                <span style="margin: 0 15px;"><strong>Total Weight:</strong> <span id="summary_lift_wt">0</span> kg</span> | 
+                <span style="margin: 0 15px;"><strong>True Avg Weight:</strong> <span id="summary_lift_avg">0.000</span> kg</span>
+            </td></tr>
+        `;
     }
 
     function changeShedCount() {
@@ -581,8 +607,8 @@
             stockCells += `<td><input type="text" id="s${s}_${i}" readonly></td>`;
             feedCells += `<td><input type="text" id="f${s}_${i}" placeholder="Bags.Kg" onchange="runSync()"></td>`;
         }
-        // FIXED: FCR is readonly, Avg Wt is manual
-        tr.innerHTML = `<td><strong>${i}</strong></td><td>${dateInput}</td>${morCells}<td><input type="text" id="dtot_${i}" readonly></td>${stockCells}${feedCells}<td><input type="number" step="any" id="wt_${i}" onchange="runSync()"></td><td><input type="text" id="fcr_${i}" readonly></td><td><input type="text" id="note_${i}" onchange="runSync()"></td>`;
+        
+        tr.innerHTML = `<td><strong>${i}</strong></td><td>${dateInput}</td>${morCells}<td><input type="text" id="dtot_${i}" readonly></td>${stockCells}${feedCells}<td><input type="text" id="ftot_${i}" readonly></td><td><input type="number" step="any" id="wt_${i}" onchange="runSync()"></td><td><input type="text" id="fcr_${i}" readonly></td><td><input type="text" id="note_${i}" onchange="runSync()"></td>`;
         tbody.appendChild(tr);
     }
     
@@ -628,17 +654,8 @@
     function removeLiftRow() { const tb = document.getElementById('liftBody'); if(tb.lastChild) { tb.removeChild(tb.lastChild); runSync(); } }
 
     // ==========================================
-    // ⚙️ CALCULATIONS
+    // ⚙️ CALCULATIONS & MATH
     // ==========================================
-    function formatFeedStr(totalBagsFloat, bagWt) {
-        if(totalBagsFloat === 0) return "0 Bags";
-        let b = Math.floor(totalBagsFloat);
-        let k = Math.round((totalBagsFloat - b) * bagWt);
-        if(k === 0) return `${b} Bags`;
-        if(b === 0) return `${k} kg`;
-        return `${b} B + ${k} kg`;
-    }
-
     function calcFeed() {
         let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
         const rows = document.getElementById('feedBody').querySelectorAll('tr');
@@ -655,17 +672,17 @@
                 if (type === 'Return Feed') { inventoryS[s] -= b; } else { inventoryS[s] += b; }
             }
             let totalBox = row.querySelector('.feed-row-total');
-            if(totalBox) totalBox.value = rowTotal > 0 ? formatFeedStr(rowTotal, bagWt) : '';
+            if(totalBox) totalBox.value = rowTotal > 0 ? formatFeedStr(rowTotal, bagWt, true) : ''; // Short format for tight row
         }
         
         for(let s=1; s<=shedCount; s++) { 
             if(document.getElementById(`feed_tot_s${s}`)) {
-                document.getElementById(`feed_tot_s${s}`).innerText = formatFeedStr(inventoryS[s], bagWt); 
+                document.getElementById(`feed_tot_s${s}`).innerText = formatFeedStr(inventoryS[s], bagWt, true); 
             }
             totalAll += inventoryS[s]; 
         }
         let totEl = document.getElementById('feed_tot_all');
-        totEl.innerText = formatFeedStr(totalAll, bagWt);
+        totEl.innerText = formatFeedStr(totalAll, bagWt, true);
         totEl.dataset.val = totalAll; 
     }
 
@@ -699,11 +716,17 @@
             }
         }
 
+        // Table Footers
         for(let s=1; s<=shedCount; s++) { let el = document.getElementById(`lift_tot_s${s}`); if(el) el.innerText = grandSheds[s]; }
         let elBox = document.getElementById('lift_tot_boxes'); if(elBox) elBox.innerText = grandBoxes;
         let elBirds = document.getElementById('lift_tot_birds'); if(elBirds) elBirds.innerText = grandBirds;
         let elWt = document.getElementById('lift_tot_wt'); if(elWt) elWt.innerText = grandWt.toFixed(2);
         let elAvg = document.getElementById('lift_avg_wt'); if(elAvg) elAvg.innerText = (grandBirds > 0 ? (grandWt/grandBirds).toFixed(3) : '0.000');
+
+        // Update the NEW Harvest Status Bar
+        document.getElementById('summary_lift_birds').innerText = grandBirds;
+        document.getElementById('summary_lift_wt').innerText = grandWt.toFixed(2);
+        document.getElementById('summary_lift_avg').innerText = (grandBirds > 0 ? (grandWt/grandBirds).toFixed(3) : '0.000');
 
         return agg; 
     }
@@ -737,7 +760,6 @@
                 totalMorS[s] += m; consumedFeedS[s] += f;
                 dayMorTotal += m; dayFeedTotal += f;
                 
-                // Keep Stock Math accurate by subtracting mortality + lifted birds
                 currentS[s] -= (m + l); 
                 liveStock += currentS[s];
 
@@ -745,9 +767,9 @@
             }
             
             if(document.getElementById(`dtot_${i}`)) { document.getElementById(`dtot_${i}`).value = hasData ? dayMorTotal : ''; }
+            if(document.getElementById(`ftot_${i}`)) { document.getElementById(`ftot_${i}`).value = hasData ? formatFeedStr(dayFeedTotal, bagWt, true) : ''; }
             cumulativeFeedBags += dayFeedTotal;
 
-            // FCR Auto-Calculation based on Manual Avg Wt
             let wt = parseFloat(document.getElementById(`wt_${i}`).value) || 0;
             let fcrField = document.getElementById(`fcr_${i}`);
             if (wt > 0 && liveStock > 0 && cumulativeFeedBags > 0) { 
@@ -761,14 +783,16 @@
         for(let s=1; s<=shedCount; s++) {
             if(document.getElementById(`tot_m${s}`)) document.getElementById(`tot_m${s}`).innerText = totalMorS[s];
             if(document.getElementById(`tot_s${s}_stock`)) document.getElementById(`tot_s${s}_stock`).innerText = currentS[s];
-            if(document.getElementById(`tot_f${s}`)) document.getElementById(`tot_f${s}`).innerText = formatFeedStr(consumedFeedS[s], bagWt);
+            if(document.getElementById(`tot_f${s}`)) document.getElementById(`tot_f${s}`).innerText = formatFeedStr(consumedFeedS[s], bagWt, true);
             totalDailyMor += totalMorS[s]; totalConsumedBags += consumedFeedS[s]; totalInStock += currentS[s];
         }
         
         document.getElementById('tot_daily').innerText = totalDailyMor; document.getElementById('tot_housed').innerText = totalHoused; document.getElementById('tot_in_stock').innerText = totalInStock;
         
+        document.getElementById('tot_feed_daily').innerText = formatFeedStr(totalConsumedBags, bagWt, true); 
+        
         let consEl = document.getElementById('tot_feed_consumed');
-        consEl.innerText = formatFeedStr(totalConsumedBags, bagWt); 
+        consEl.innerText = formatFeedStr(totalConsumedBags, bagWt, false); 
         consEl.dataset.val = totalConsumedBags; 
     }
 
@@ -780,10 +804,7 @@
         let remainingBags = totalArrivals - totalConsumed;
         
         let elRem = document.getElementById('tot_feed_remaining');
-        if (elRem) elRem.innerText = formatFeedStr(remainingBags, bagWt);
-        
-        let elRemKg = document.getElementById('tot_feed_remaining_kg');
-        if (elRemKg) elRemKg.innerText = (remainingBags * bagWt).toFixed(2);
+        if (elRem) elRem.innerText = formatFeedStr(remainingBags, bagWt, false);
     }
 
     // ==========================================
@@ -822,10 +843,10 @@
     function endBatchSummary() {
         let tInit = parseInt(document.getElementById('tot_housed').innerText)||0;
         let tMor = parseInt(document.getElementById('tot_daily').innerText)||0;
-        let tLift = parseInt(document.getElementById('lift_tot_birds')?.innerText)||0;
+        let tLift = parseInt(document.getElementById('summary_lift_birds')?.innerText)||0;
         let tFeedBags = parseFloat(document.getElementById('tot_feed_consumed').dataset.val)||0;
         let bagWt = parseFloat(document.getElementById('bagWt').value)||50;
-        let tLiftWt = parseFloat(document.getElementById('lift_tot_wt').innerText)||0;
+        let tLiftWt = parseFloat(document.getElementById('summary_lift_wt').innerText)||0;
         
         let tFeedKg = tFeedBags * bagWt;
         let livability = tInit > 0 ? ((tLift / tInit) * 100).toFixed(2) : 0;
@@ -837,7 +858,7 @@
             <div class="summary-stat"><span>Total Mortality</span> <strong>${tMor} birds</strong></div>
             <div class="summary-stat"><span>Total Lifted (Harvested)</span> <strong>${tLift} birds</strong></div>
             <div class="summary-stat"><span>Livability</span> <strong style="color:var(--success);">${livability}%</strong></div>
-            <div class="summary-stat" style="margin-top:15px;"><span>Total Feed Consumed</span> <strong>${formatFeedStr(tFeedBags, bagWt)}</strong></div>
+            <div class="summary-stat" style="margin-top:15px;"><span>Total Feed Consumed</span> <strong>${formatFeedStr(tFeedBags, bagWt, false)}</strong></div>
             <div class="summary-stat"><span>Total Lifted Weight</span> <strong>${tLiftWt.toFixed(2)} kg</strong></div>
             <div class="summary-stat" style="margin-top:15px;"><span>Final Avg Weight</span> <strong>${finalAvgWt} kg</strong></div>
             <div class="summary-stat" style="background:#eaf2f8; padding:10px; margin-top:5px; border-radius:4px;">
@@ -855,7 +876,7 @@
         let csv = "--- DAILY LOG ---\nDay,Date,";
         for(let s=1; s<=shedCount; s++) csv += `Mor S${s},`; csv += "Total Mor,";
         for(let s=1; s<=shedCount; s++) csv += `Stock S${s},`;
-        for(let s=1; s<=shedCount; s++) csv += `Feed S${s},`; csv += "Avg Wt,FCR,Remarks\n";
+        for(let s=1; s<=shedCount; s++) csv += `Feed S${s},`; csv += "Total Feed,Avg Wt,FCR,Remarks\n";
 
         for (let i = 1; i <= totalDays; i++) {
             if(!document.getElementById('m1_' + i)) continue;
@@ -864,7 +885,7 @@
             row.push(document.getElementById('dtot_' + i).value);
             for(let s=1; s<=shedCount; s++) row.push(document.getElementById(`s${s}_${i}`).value);
             for(let s=1; s<=shedCount; s++) row.push(document.getElementById(`f${s}_${i}`).value);
-            row.push(document.getElementById('wt_' + i).value, document.getElementById('fcr_' + i).value, `"${document.getElementById('note_' + i).value}"`);
+            row.push(`"${document.getElementById('ftot_' + i).value}"`, document.getElementById('wt_' + i).value, document.getElementById('fcr_' + i).value, `"${document.getElementById('note_' + i).value}"`);
             csv += row.join(",") + "\n";
         }
 
