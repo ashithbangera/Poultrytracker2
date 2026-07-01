@@ -5,15 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Smart Poultry Tracker (Harvest Edition)</title>
     
-    <!-- PWA Manifest Link -->
     <link rel="manifest" href="manifest.json">
 
-    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     
-    <!-- Chart.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
@@ -114,7 +111,6 @@
 </head>
 <body>
 
-<!-- Secure Auth Screen -->
 <div id="loginScreen">
     <div class="login-box">
         <h2>Farm Login 🔒</h2>
@@ -127,10 +123,9 @@
     </div>
 </div>
 
-<!-- LANDING PAGE DASHBOARD -->
 <div id="landingScreen" style="display: none;" class="container">
     <div class="header-section" style="border-bottom: none;">
-        <h1>Poultry Dashboard</h1>
+        <h1>Poultry Dashboard ☁️</h1>
         <button class="btn-outline" onclick="logout()">Log Out</button>
     </div>
     
@@ -170,7 +165,6 @@
     </div>
 </div>
 
-<!-- MAIN APPLICATION (DAILY LOG VIEW) -->
 <div id="appContainer" style="display: none;" class="container">
     <div class="header-section">
         <div style="display: flex; align-items: center; gap: 15px;">
@@ -183,7 +177,6 @@
         </div>
     </div>
 
-    <!-- Data Management Bar -->
     <div class="actions-bar">
         <strong>Data & Reports:</strong>
         <button class="btn-success" onclick="exportCSV()">📄 Export Excel</button>
@@ -194,9 +187,7 @@
         <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importBackup(event)">
     </div>
 
-    <!-- MAIN TRACKER GRID -->
     <div class="grid-layout">
-        <!-- Daily Log Section -->
         <div class="section">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h2>Daily Log</h2>
@@ -215,9 +206,7 @@
             </div>
         </div>
 
-        <!-- Inventory Stack -->
         <div>
-            <!-- Feed Arrivals Section -->
             <div class="section" style="border-top-color: var(--success);">
                 <h2>Feed Arrivals</h2>
                 <div class="table-responsive">
@@ -233,7 +222,6 @@
                 </div>
             </div>
 
-            <!-- Lifting Section -->
             <div class="section" style="border-top-color: #f59e0b;">
                 <h2>Chicken Lifting (Harvest)</h2>
                 <div class="table-responsive">
@@ -251,7 +239,6 @@
         </div>
     </div>
 
-    <!-- ANALYTICS DASHBOARD -->
     <div class="section" style="margin-top: 20px; border-top-color: var(--primary);">
         <h2>📊 Analytics Dashboard</h2>
         <div class="analytics-grid">
@@ -261,7 +248,6 @@
     </div>
 </div>
 
-<!-- Modal -->
 <div class="modal-overlay" id="summaryModal">
     <div class="modal-content">
         <h2>End of Batch Report</h2>
@@ -366,7 +352,10 @@
         if (s.includes('.')) {
             let parts = s.split('.');
             let bags = parseInt(parts[0]) || 0;
-            let kg = parseInt(parts[1]) || 0; 
+            let kgStr = parts[1];
+            // AUTO-PAD: If user types "12.3", they mean "12.30" (30kg).
+            if (kgStr.length === 1) kgStr += "0";
+            let kg = parseInt(kgStr.substring(0, 2)) || 0; 
             return bags + (kg / bagWt);
         }
         return parseFloat(s) || 0;
@@ -396,7 +385,6 @@
         }
         document.getElementById('initShedContainer').innerHTML = initHtml;
 
-        // Daily Log - Clean Text
         let morH = '', stockH = '', feedH = '';
         for(let s=1; s<=shedCount; s++) {
             morH += `<th class="tight-col">Mor S${s}</th>`; 
@@ -420,7 +408,6 @@
             </td></tr>
         `;
 
-        // Feed Arrivals - Clean Text
         let fH = '', fF = '';
         for(let s=1; s<=shedCount; s++) {
             fH += `<th class="tight-col">Bags S${s}</th>`; fF += `<td id="feed_tot_s${s}">0</td>`;
@@ -428,7 +415,6 @@
         document.getElementById('feedHead').innerHTML = `<tr><th class="tight-col">Date</th><th class="tight-col">Type</th>${fH}<th class="tight-col">Total</th></tr>`;
         document.getElementById('feedFoot').innerHTML = `<tr class="totals-row"><td colspan="2" style="text-align: right; padding-right: 10px;">NET ARRIVALS:</td>${fF}<td id="feed_tot_all" data-val="0">0B, 0kg</td></tr>`;
 
-        // Lifting (Harvest) - Clean Text & Squeezed Headers
         let liftH = '', liftF = '';
         for(let s=1; s<=shedCount; s++) {
             liftH += `<th class="tight-col">S${s}</th>`;
@@ -655,7 +641,6 @@
 
     function addFeedRow(date='', type='', bags=[]) {
         const tbody = document.getElementById('feedBody'); const tr = document.createElement('tr');
-        // REVERTED: Clean text dropdown options
         let selectHtml = `<select onchange="runSync()"><option value="" disabled ${type===''?'selected':''}>Select...</option>`;
         ['Old feed', 'Pre-Starter', 'Starter', 'Finisher', 'Return Feed'].forEach(opt => { 
             let cleanType = type === opt ? opt : type; 
@@ -697,7 +682,7 @@
                 if(!inputEl) continue;
                 let b = parseFeed(inputEl.value, bagWt); 
                 rowTotal += b;
-                if (type.includes('Return Feed')) { inventoryS[s] -= b; } else { inventoryS[s] += b; } 
+                if (type && type.includes('Return Feed')) { inventoryS[s] -= b; } else { inventoryS[s] += b; } 
             }
             let totalBox = row.querySelector('.feed-row-total');
             if(totalBox) totalBox.value = rowTotal > 0 ? formatFeedStr(rowTotal, bagWt, true) : ''; 
@@ -960,7 +945,7 @@
         }
 
         csv += "\n--- LIFTING (HARVEST) ---\nDate,";
-        for(let s=1; s<=shedCount; s++) csv += `Shed ${s},`; csv += "Boxes,Total Lifted,Total Wt,Avg Wt\n";
+        for(let s=1; s<=shedCount; s++) csv += `S${s},`; csv += "Boxes,Birds,Wt(kg),Avg Wt\n";
         let liftRows = document.querySelectorAll('#liftBody tr');
         for (let k = 0; k < liftRows.length; k++) {
             let tr = liftRows[k]; let row = [ `"${formatDateForExport(tr.cells[0].querySelector('input').value)}"` ];
