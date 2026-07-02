@@ -352,7 +352,7 @@
         if (s.includes('.')) {
             let parts = s.split('.');
             let bags = parseInt(parts[0]) || 0;
-            // FIXED: Reads strictly what the user typed without padding!
+            // FIXED: Parses exactly what you type without assuming padded zeros.
             let kg = parseInt(parts[1]) || 0; 
             return bags + (kg / bagWt);
         }
@@ -751,16 +751,13 @@
         }
 
         let cumulativeFeedBags = 0;
-        
-        // FIXED: This holds the weight of all previously harvested birds!
-        let cumulativeHarvestedWt = 0; 
+        let cumulativeHarvestedWt = 0;
 
         for (let i = 1; i <= totalDays; i++) {
             let dayMorTotal = 0, dayFeedTotal = 0, hasData = false, liveStock = 0;
             let dateVal = document.getElementById(`date_${i}`).value.trim();
             let liftedToday = (dateVal && liftData[dateVal]) ? liftData[dateVal] : null;
 
-            // Bank the harvest weight for all future FCR calculations
             if (liftedToday) {
                 cumulativeHarvestedWt += liftedToday.totalWt; 
             }
@@ -787,20 +784,29 @@
             if(document.getElementById(`ftot_${i}`)) { document.getElementById(`ftot_${i}`).value = hasData ? formatFeedStr(dayFeedTotal, bagWt, true) : ''; }
             cumulativeFeedBags += dayFeedTotal;
 
-            // FIXED: Flawless Total Biomass FCR Calculation
+            // FIXED: Secure FCR Calculation
             let wt = parseFloat(document.getElementById(`wt_${i}`).value) || 0;
             let fcrField = document.getElementById(`fcr_${i}`);
-            
             let totalDailyBiomass = (liveStock * wt) + cumulativeHarvestedWt;
             
-            if (cumulativeFeedBags > 0 && totalDailyBiomass > 0) { 
-                // Only calculate if the user provided an avg weight for the living birds, or if the shed is fully empty
-                if (liveStock > 0 && wt === 0) {
-                    fcrField.value = ''; 
-                } else {
-                    fcrField.value = ((cumulativeFeedBags * bagWt) / totalDailyBiomass).toFixed(3); 
+            let canCalculateFCR = false;
+            
+            // 1. If we have live birds, we MUST have a manual average weight to calculate FCR
+            if (liveStock > 0 && wt > 0) {
+                canCalculateFCR = true;
+            } 
+            // 2. If the shed is empty, total biomass is just the harvest weight. We only calculate 
+            // FCR if a harvest/feed actually happened today, to prevent trailing FCRs on empty rows.
+            else if (liveStock <= 0 && totalDailyBiomass > 0) {
+                if (liftedToday || hasData || wt > 0) {
+                    canCalculateFCR = true;
                 }
-            } else { 
+            }
+
+            // Print or clear the FCR box
+            if (canCalculateFCR && cumulativeFeedBags > 0) {
+                fcrField.value = ((cumulativeFeedBags * bagWt) / totalDailyBiomass).toFixed(3); 
+            } else {
                 fcrField.value = ''; 
             }
         }
