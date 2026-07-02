@@ -172,7 +172,7 @@
             <h1 style="margin: 0;">Batch: <span id="displayBatchName" style="color: var(--accent);"></span></h1>
         </div>
         <div style="display: flex; align-items: center; gap: 10px;">
-            <span class="save-indicator" id="saveStatus">Connected</span>
+            <span class="save-indicator" id="saveStatus">🟢 Connected</span>
             <button class="btn-danger" style="padding: 10px 15px; font-size: 15px;" onclick="endBatchSummary()">🛑 END BATCH REPORT</button>
         </div>
     </div>
@@ -250,7 +250,7 @@
 
 <div class="modal-overlay" id="summaryModal">
     <div class="modal-content">
-        <h2>End of Batch Report</h2>
+        <h2>🛑 Final End of Batch Report</h2>
         <div id="summaryContent"></div>
         <button class="btn-primary" style="margin-top: 20px; width: 100%;" onclick="closeSummary()">Close Report</button>
     </div>
@@ -344,18 +344,17 @@
     function logout() { firebase.auth().signOut(); localStorage.removeItem('poultryCurrentView'); }
 
     // ==========================================
-    // 🚜 CUSTOM LOOSE FEED PARSER & FORMATTER 
+    // 🚜 EXACT LOOSE FEED PARSER & FORMATTER 
     // ==========================================
+    // FIXED: Reads exactly what the user types. 3.4 = 3 bags, 4 kg.
     function parseFeed(val, bagWt) {
         if (!val) return 0;
         let s = String(val).trim();
         if (s.includes('.')) {
             let parts = s.split('.');
             let bags = parseInt(parts[0]) || 0;
-            let kgStr = parts[1];
-            // AUTO-PAD: If user types "12.3", they mean "12.30" (30kg).
-            if (kgStr.length === 1) kgStr += "0";
-            let kg = parseInt(kgStr.substring(0, 2)) || 0; 
+            // No auto-padding! parseInt("4") = 4. parseInt("40") = 40.
+            let kg = parseInt(parts[1]) || 0; 
             return bags + (kg / bagWt);
         }
         return parseFloat(s) || 0;
@@ -415,6 +414,7 @@
         document.getElementById('feedHead').innerHTML = `<tr><th class="tight-col">Date</th><th class="tight-col">Type</th>${fH}<th class="tight-col">Total</th></tr>`;
         document.getElementById('feedFoot').innerHTML = `<tr class="totals-row"><td colspan="2" style="text-align: right; padding-right: 10px;">NET ARRIVALS:</td>${fF}<td id="feed_tot_all" data-val="0">0B, 0kg</td></tr>`;
 
+        // FIXED: Ultra-Short Headers for Harvest
         let liftH = '', liftF = '';
         for(let s=1; s<=shedCount; s++) {
             liftH += `<th class="tight-col">S${s}</th>`;
@@ -529,7 +529,7 @@
     function buildDataObject() {
         let data = { settings: { shedCount: shedCount, bagWt: document.getElementById('bagWt').value, days: totalDays }, daily: [], feed: [], lift: [] };
         
-        for(let s=1; s<=shedCount; s++) { data.settings[`initS${s}`] = document.getElementById(`initShed${s}`) ? document.getElementById(`initShed${s}`).value : ''; }
+        for(let s=1; s<=shedCount; s++) { data.settings[`initShed${s}`] = document.getElementById(`initShed${s}`) ? document.getElementById(`initShed${s}`).value : ''; }
 
         for(let i=1; i<=totalDays; i++) {
             if(!document.getElementById('m1_' + i)) continue;
@@ -571,7 +571,7 @@
         shedCount = parseInt(data.settings.shedCount) || 2; document.getElementById('shedCountSelect').value = shedCount;
         renderDynamicStructure(); 
 
-        for(let s=1; s<=shedCount; s++) { if(document.getElementById(`initShed${s}`)) document.getElementById(`initShed${s}`).value = data.settings[`initS${s}`] || ''; }
+        for(let s=1; s<=shedCount; s++) { if(document.getElementById(`initShed${s}`)) document.getElementById(`initShed${s}`).value = data.settings[`initShed${s}`] || ''; }
         document.getElementById('bagWt').value = data.settings.bagWt || 50; totalDays = data.settings.days || 45;
 
         document.getElementById('dailyBody').innerHTML = '';
@@ -753,11 +753,16 @@
         }
 
         let cumulativeFeedBags = 0;
+        let cumulativeHarvestedWt = 0;
 
         for (let i = 1; i <= totalDays; i++) {
             let dayMorTotal = 0, dayFeedTotal = 0, hasData = false, liveStock = 0;
             let dateVal = document.getElementById(`date_${i}`).value.trim();
             let liftedToday = (dateVal && liftData[dateVal]) ? liftData[dateVal] : null;
+
+            if (liftedToday) {
+                cumulativeHarvestedWt += liftedToday.totalWt; 
+            }
 
             for(let s=1; s<=shedCount; s++) {
                 let mInput = document.getElementById(`m${s}_${i}`); let fInput = document.getElementById(`f${s}_${i}`);
@@ -781,10 +786,18 @@
             if(document.getElementById(`ftot_${i}`)) { document.getElementById(`ftot_${i}`).value = hasData ? formatFeedStr(dayFeedTotal, bagWt, true) : ''; }
             cumulativeFeedBags += dayFeedTotal;
 
+            // FIXED FCR AUTO-CALCULATION: Includes banked Harvest Weight!
             let wt = parseFloat(document.getElementById(`wt_${i}`).value) || 0;
             let fcrField = document.getElementById(`fcr_${i}`);
-            if (wt > 0 && liveStock > 0 && cumulativeFeedBags > 0) { 
-                fcrField.value = ((cumulativeFeedBags * bagWt) / (liveStock * wt)).toFixed(3); 
+            
+            let totalDailyBiomass = (liveStock * wt) + cumulativeHarvestedWt;
+            
+            if (totalDailyBiomass > 0 && cumulativeFeedBags > 0) {
+                if (liveStock === 0 || wt > 0) {
+                    fcrField.value = ((cumulativeFeedBags * bagWt) / totalDailyBiomass).toFixed(3); 
+                } else {
+                    fcrField.value = '';
+                }
             } else { 
                 fcrField.value = ''; 
             }
@@ -845,7 +858,7 @@
         healthChartInstance = new Chart(ctxHealth, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Daily Mortality', data: mortalityData, backgroundColor: 'rgba(220, 38, 38, 0.8)' }] }, options: { responsive: true, maintainAspectRatio: false } });
         const ctxFcr = document.getElementById('fcrChart').getContext('2d');
         if (fcrChartInstance) fcrChartInstance.destroy();
-        fcrChartInstance = new Chart(ctxFcr, { type: 'line', data: { labels: labels, datasets: [ { type: 'bar', label: 'Feed (Bags)', data: feedData, backgroundColor: 'rgba(37, 99, 235, 0.7)', yAxisID: 'y' }, { type: 'line', label: 'Manual FCR Trend', data: fcrData, borderColor: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.2)', borderWidth: 3, yAxisID: 'y1' } ] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { position: 'left' }, y1: { position: 'right', grid: {drawOnChartArea: false} } } } });
+        fcrChartInstance = new Chart(ctxFcr, { type: 'line', data: { labels: labels, datasets: [ { type: 'bar', label: 'Feed (Bags)', data: feedData, backgroundColor: 'rgba(37, 99, 235, 0.7)', yAxisID: 'y' }, { type: 'line', label: 'Daily FCR Trend', data: fcrData, borderColor: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.2)', borderWidth: 3, yAxisID: 'y1' } ] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { position: 'left' }, y1: { position: 'right', grid: {drawOnChartArea: false} } } } });
     }
 
     // ==========================================
