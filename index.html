@@ -366,14 +366,13 @@
         if (s.includes('.')) {
             let parts = s.split('.');
             let bags = parseInt(parts[0]) || 0;
-            // FIXED: Reads strictly what the user typed without padding!
+            // Exact literal parsing. No padding.
             let kg = parseInt(parts[1]) || 0; 
             return bags + (kg / bagWt);
         }
         return parseFloat(s) || 0;
     }
 
-    // Handles negative formatting seamlessly for Return Feeds
     function formatFeedStr(totalBagsFloat, bagWt, short=false) {
         if(totalBagsFloat === 0) return short ? "0B, 0kg" : "0 B & 0 kg";
         
@@ -528,10 +527,9 @@
     }
 
     function runSync() {
-        // Feed calculation now returns the returned-feed data to sync to the Daily Log
-        let returnData = calcFeed(); 
+        let feedAgg = calcFeed(); 
         let liftingData = calcLifting(); 
-        calculateTable(liftingData, returnData); 
+        calculateTable(liftingData, feedAgg); 
         calcRemaining(); 
 
         if (isSyncingFromCloud || !cloudRef) return; 
@@ -539,7 +537,7 @@
         document.getElementById('saveStatus').innerText = "Saving...";
         clearTimeout(saveTimeout); 
         saveTimeout = setTimeout(function() { 
-            updateCharts(returnData);
+            updateCharts(feedAgg);
             saveDataToCloud(); 
         }, 1000); 
     }
@@ -617,10 +615,10 @@
             });
         } else { addLiftRow(); }
 
-        let returnData = calcFeed();
-        calculateTable(calcLifting(), returnData); 
+        let feedAgg = calcFeed();
+        calculateTable(calcLifting(), feedAgg); 
         calcRemaining(); 
-        updateCharts(returnData);
+        updateCharts(feedAgg);
     }
 
     // ==========================================
@@ -696,8 +694,7 @@
         let inventoryS = []; for(let s=1; s<=shedCount; s++) inventoryS[s] = 0;
         let totalAll = 0;
         
-        // Tracking Return Feed per Date to sync to Daily Log
-        let returnAgg = {};
+        let feedAgg = {}; 
         
         for (let j = 0; j < rows.length; j++) {
             let row = rows[j]; 
@@ -705,7 +702,14 @@
             let type = row.cells[1].querySelector('select').value; 
             let rowTotal = 0;
             
+            if(date && !feedAgg[date]) feedAgg[date] = { arr: [], ret: [] };
+
             for(let s=1; s<=shedCount; s++) {
+                if(date && feedAgg[date].arr[s] === undefined) {
+                    feedAgg[date].arr[s] = 0;
+                    feedAgg[date].ret[s] = 0;
+                }
+                
                 let inputEl = row.querySelector(`.bag-input.shed-${s}`);
                 if(!inputEl) continue;
                 let b = parseFeed(inputEl.value, bagWt); 
@@ -713,13 +717,10 @@
                 
                 if (type && type.includes('Return Feed')) { 
                     inventoryS[s] -= b; 
-                    if(date) {
-                        if(!returnAgg[date]) returnAgg[date] = { sheds: {}, total: 0 };
-                        returnAgg[date].sheds[s] = (returnAgg[date].sheds[s] || 0) + b;
-                        returnAgg[date].total += b;
-                    }
+                    if(date) feedAgg[date].ret[s] += b;
                 } else { 
                     inventoryS[s] += b; 
+                    if(date) feedAgg[date].arr[s] += b;
                 } 
             }
             let totalBox = row.querySelector('.feed-row-total');
@@ -736,7 +737,7 @@
         totEl.innerText = formatFeedStr(totalAll, bagWt, true);
         totEl.dataset.val = totalAll; 
         
-        return returnAgg;
+        return feedAgg;
     }
 
     function calcLifting() {
@@ -782,16 +783,31 @@
         return agg; 
     }
 
-    function calculateTable(liftData, returnData) {
+    function calculateTable(liftData, feedAgg) {
         if(!liftData) liftData = {}; 
-        if(!returnData) returnData = {}; 
+        if(!feedAgg) feedAgg = {}; 
         
         let inits = [], currentS = [], totalMorS = [], consumedFeedS = [], totalHoused = 0;
         let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
 
+        let runningArrivals = [];
+        let runningConsumed = [];
         for(let s=1; s<=shedCount; s++) {
             inits[s] = parseInt(document.getElementById('initShed'+s)?.value) || 0;
             currentS[s] = inits[s]; totalHoused += inits[s]; totalMorS[s] = 0; consumedFeedS[s] = 0;
+            runningArrivals[s] = 0; runningConsumed[s] = 0;
+        }
+
+        // Catch pre-Day 1 feed arrivals/returns so inventory math is perfect
+        let day1Date = document.getElementById('date_1') ? document.getElementById('date_1').value.trim() : '';
+        if (day1Date) {
+            for (let d in feedAgg) {
+                if (d < day1Date) { 
+                    for(let s=1; s<=shedCount; s++) {
+                        runningArrivals[s] += (feedAgg[d].arr[s] || 0) - (feedAgg[d].ret[s] || 0);
+                    }
+                }
+            }
         }
 
         let cumulativeFeedBags = 0;
@@ -800,8 +816,9 @@
         for (let i = 1; i <= totalDays; i++) {
             let dayMorTotal = 0, dayFeedTotal = 0, hasData = false, liveStock = 0;
             let dateVal = document.getElementById(`date_${i}`).value.trim();
+            
             let liftedToday = (dateVal && liftData[dateVal]) ? liftData[dateVal] : null;
-            let returnedToday = (dateVal && returnData[dateVal]) ? returnData[dateVal] : null;
+            let fDataToday = (dateVal && feedAgg[dateVal]) ? feedAgg[dateVal] : {arr:[], ret:[]};
 
             if (liftedToday) {
                 cumulativeHarvestedWt += liftedToday.totalWt; 
@@ -814,16 +831,33 @@
                 let m = parseInt(mInput.value) || 0; 
                 let f = parseFeed(fInput.value, bagWt); 
                 let l = (liftedToday && liftedToday.sheds[s]) ? liftedToday.sheds[s] : 0; 
-                let ret = (returnedToday && returnedToday.sheds[s]) ? returnedToday.sheds[s] : 0; 
+                
+                let arr = fDataToday.arr[s] || 0;
+                let ret = fDataToday.ret[s] || 0;
 
-                // Ensure row triggers output if Return Feed is mapped to this day
+                runningArrivals[s] += arr;
+                runningConsumed[s] += f;
+                
+                let netF = f;
+
+                // FIXED: Return Feed Math. Deduct from Stock first, then Pan (Consumed)
+                if (ret > 0) {
+                    let currentInv = runningArrivals[s] - runningConsumed[s];
+                    let stockAbsorb = Math.min(ret, Math.max(0, currentInv));
+                    let deductFromConsumed = ret - stockAbsorb;
+                    
+                    runningArrivals[s] -= ret;
+                    runningConsumed[s] -= deductFromConsumed;
+                    
+                    netF = f - deductFromConsumed;
+                }
+
                 if(mInput.value !== '' || fInput.value !== '' || ret > 0) hasData = true;
 
-                // Net Feed completely strips out the feed swept and returned
-                let netF = f - ret;
-
-                totalMorS[s] += m; consumedFeedS[s] += netF;
-                dayMorTotal += m; dayFeedTotal += netF;
+                totalMorS[s] += m; 
+                consumedFeedS[s] += netF; 
+                dayMorTotal += m; 
+                dayFeedTotal += netF; 
                 
                 currentS[s] -= (m + l); 
                 liveStock += currentS[s];
@@ -835,19 +869,18 @@
             if(document.getElementById(`ftot_${i}`)) { document.getElementById(`ftot_${i}`).value = hasData ? formatFeedStr(dayFeedTotal, bagWt, true) : ''; }
             cumulativeFeedBags += dayFeedTotal;
 
-            // FCR Auto-Calculation: Strictly Protected Matrix
+            // FIXED: Locked FCR Auto-Calculation
             let wt = parseFloat(document.getElementById(`wt_${i}`).value) || 0;
             let fcrField = document.getElementById(`fcr_${i}`);
             let totalDailyBiomass = (liveStock * wt) + cumulativeHarvestedWt;
             
             let canCalculateFCR = false;
             
-            // 1. If we have live birds, we MUST have an average weight to calculate FCR
+            // Rule 1: Living Birds MUST have a manual average weight.
             if (liveStock > 0 && wt > 0) {
                 canCalculateFCR = true;
             } 
-            // 2. If the shed is empty, total biomass is just the harvest weight. 
-            // We only calculate if a harvest/feed actually happened today.
+            // Rule 2: Empty shed locking. Calculate FCR ONLY if activity happened today to prevent trailing false numbers.
             else if (liveStock <= 0 && totalDailyBiomass > 0) {
                 if (liftedToday || hasData || wt > 0) {
                     canCalculateFCR = true;
@@ -892,21 +925,23 @@
     // ==========================================
     // 📊 CHART.JS ENGINE
     // ==========================================
-    function updateCharts(returnData) {
-        if(!returnData) returnData = {};
+    function updateCharts(feedAgg) {
+        if(!feedAgg) feedAgg = {};
         const labels = [], mortalityData = [], feedData = [], fcrData = [];
         let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
 
         for (let i = 1; i <= totalDays; i++) {
             labels.push("Day " + i);
             let dateVal = document.getElementById(`date_${i}`).value.trim();
-            let returnedToday = (dateVal && returnData[dateVal]) ? returnData[dateVal] : null;
+            let fDataToday = (dateVal && feedAgg[dateVal]) ? feedAgg[dateVal] : {arr:[], ret:[]};
             
             if(!document.getElementById('m1_' + i)) { mortalityData.push(null); feedData.push(null); fcrData.push(null); continue; }
             let dayMor = 0, dayFeed = 0, hasData = false;
+            
+            // To plot feed visually, we just show what they typed in the pan minus returned feed today.
             for(let s=1; s<=shedCount; s++) {
                 let mInput = document.getElementById(`m${s}_${i}`); let fInput = document.getElementById(`f${s}_${i}`);
-                let ret = (returnedToday && returnedToday.sheds[s]) ? returnedToday.sheds[s] : 0;
+                let ret = fDataToday.ret[s] || 0;
                 
                 if(mInput && fInput && (mInput.value !== '' || fInput.value !== '' || ret > 0)) hasData = true;
                 dayMor += parseInt(mInput ? mInput.value : 0) || 0; 
@@ -922,7 +957,7 @@
         healthChartInstance = new Chart(ctxHealth, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Daily Mortality', data: mortalityData, backgroundColor: 'rgba(220, 38, 38, 0.8)' }] }, options: { responsive: true, maintainAspectRatio: false } });
         const ctxFcr = document.getElementById('fcrChart').getContext('2d');
         if (fcrChartInstance) fcrChartInstance.destroy();
-        fcrChartInstance = new Chart(ctxFcr, { type: 'line', data: { labels: labels, datasets: [ { type: 'bar', label: 'Net Daily Feed (Bags)', data: feedData, backgroundColor: 'rgba(37, 99, 235, 0.7)', yAxisID: 'y' }, { type: 'line', label: 'Manual FCR Trend', data: fcrData, borderColor: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.2)', borderWidth: 3, yAxisID: 'y1' } ] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { position: 'left' }, y1: { position: 'right', grid: {drawOnChartArea: false} } } } });
+        fcrChartInstance = new Chart(ctxFcr, { type: 'line', data: { labels: labels, datasets: [ { type: 'bar', label: 'Net Feed (Bags)', data: feedData, backgroundColor: 'rgba(37, 99, 235, 0.7)', yAxisID: 'y' }, { type: 'line', label: 'Daily FCR Trend', data: fcrData, borderColor: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.2)', borderWidth: 3, yAxisID: 'y1' } ] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { position: 'left' }, y1: { position: 'right', grid: {drawOnChartArea: false} } } } });
     }
 
     // ==========================================
@@ -934,11 +969,23 @@
         let bagWt = parseFloat(document.getElementById('bagWt').value)||50;
         
         let liftData = calcLifting();
-        let returnData = calcFeed(); // Fetch returns to calculate accurate FCR history
+        let feedAgg = calcFeed(); 
         let tLift = parseInt(document.getElementById('summary_lift_birds')?.innerText)||0;
         
         let survivingLiveStock = tInit - tMor; 
         let livability = tInit > 0 ? ((survivingLiveStock / tInit) * 100).toFixed(2) : 0;
+
+        let runningArrivals = []; let runningConsumed = [];
+        for(let s=1; s<=shedCount; s++) { runningArrivals[s]=0; runningConsumed[s]=0; }
+        
+        let day1Date = document.getElementById('date_1') ? document.getElementById('date_1').value.trim() : '';
+        if (day1Date) {
+            for (let d in feedAgg) {
+                if (d < day1Date) { 
+                    for(let s=1; s<=shedCount; s++) { runningArrivals[s] += (feedAgg[d].arr[s] || 0) - (feedAgg[d].ret[s] || 0); }
+                }
+            }
+        }
 
         let lastEventDay = 0;
         let feedUpToLastEvent = 0;
@@ -948,15 +995,27 @@
         for (let i = 1; i <= totalDays; i++) {
             let dayFeed = 0;
             let dateVal = document.getElementById(`date_${i}`) ? document.getElementById(`date_${i}`).value.trim() : '';
-            let returnedToday = (dateVal && returnData[dateVal]) ? returnData[dateVal] : null;
+            let fDataToday = (dateVal && feedAgg[dateVal]) ? feedAgg[dateVal] : {arr:[], ret:[]};
             let liftedToday = (dateVal && liftData[dateVal]) ? true : false;
 
             for(let s=1; s<=shedCount; s++) {
                 let fInput = document.getElementById(`f${s}_${i}`);
-                let f = 0;
-                if(fInput) f = parseFeed(fInput.value, bagWt);
-                let ret = (returnedToday && returnedToday.sheds[s]) ? returnedToday.sheds[s] : 0;
-                dayFeed += (f - ret);
+                let f = fInput ? parseFeed(fInput.value, bagWt) : 0;
+                let arr = fDataToday.arr[s] || 0;
+                let ret = fDataToday.ret[s] || 0;
+
+                runningArrivals[s] += arr;
+                runningConsumed[s] += f;
+
+                if (ret > 0) {
+                    let currentInv = runningArrivals[s] - runningConsumed[s];
+                    let stockAbsorb = Math.min(ret, Math.max(0, currentInv));
+                    let deductFromConsumed = ret - stockAbsorb;
+                    runningArrivals[s] -= ret;
+                    runningConsumed[s] -= deductFromConsumed;
+                    f -= deductFromConsumed;
+                }
+                dayFeed += f;
             }
             cumFeed += dayFeed;
 
