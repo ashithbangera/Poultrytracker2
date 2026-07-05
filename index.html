@@ -5,12 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Smart Poultry Tracker (Harvest Edition)</title>
     
+    <!-- PWA Manifest Link -->
     <link rel="manifest" href="manifest.json">
 
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     
+    <!-- Chart.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
@@ -111,6 +114,7 @@
 </head>
 <body>
 
+<!-- Secure Auth Screen -->
 <div id="loginScreen">
     <div class="login-box">
         <h2>Farm Login 🔒</h2>
@@ -123,9 +127,10 @@
     </div>
 </div>
 
+<!-- LANDING PAGE DASHBOARD -->
 <div id="landingScreen" style="display: none;" class="container">
     <div class="header-section" style="border-bottom: none;">
-        <h1>Poultry Dashboard</h1>
+        <h1>Poultry Dashboard ☁️</h1>
         <button class="btn-outline" onclick="logout()">Log Out</button>
     </div>
     
@@ -165,6 +170,7 @@
     </div>
 </div>
 
+<!-- MAIN APPLICATION (DAILY LOG VIEW) -->
 <div id="appContainer" style="display: none;" class="container">
     <div class="header-section">
         <div style="display: flex; align-items: center; gap: 15px;">
@@ -177,6 +183,7 @@
         </div>
     </div>
 
+    <!-- Data Management Bar -->
     <div class="actions-bar">
         <strong>Data & Reports:</strong>
         <button class="btn-success" onclick="exportCSV()">📄 Export Excel</button>
@@ -187,7 +194,9 @@
         <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importBackup(event)">
     </div>
 
+    <!-- MAIN TRACKER GRID -->
     <div class="grid-layout">
+        <!-- Daily Log Section -->
         <div class="section">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h2>Daily Log</h2>
@@ -206,7 +215,9 @@
             </div>
         </div>
 
+        <!-- Inventory Stack -->
         <div>
+            <!-- Feed Arrivals Section -->
             <div class="section" style="border-top-color: var(--success);">
                 <h2>Feed Arrivals</h2>
                 <div class="table-responsive">
@@ -222,6 +233,7 @@
                 </div>
             </div>
 
+            <!-- Lifting Section -->
             <div class="section" style="border-top-color: #f59e0b;">
                 <h2>Chicken Lifting (Harvest)</h2>
                 <div class="table-responsive">
@@ -239,6 +251,7 @@
         </div>
     </div>
 
+    <!-- ANALYTICS DASHBOARD -->
     <div class="section" style="margin-top: 20px; border-top-color: var(--primary);">
         <h2>📊 Analytics Dashboard</h2>
         <div class="analytics-grid">
@@ -248,6 +261,7 @@
     </div>
 </div>
 
+<!-- Modal -->
 <div class="modal-overlay" id="summaryModal">
     <div class="modal-content">
         <h2>End of Batch Report</h2>
@@ -352,15 +366,19 @@
         if (s.includes('.')) {
             let parts = s.split('.');
             let bags = parseInt(parts[0]) || 0;
-            // FIXED: Parses exactly what you type without assuming padded zeros.
+            // FIXED: Reads strictly what the user typed without padding!
             let kg = parseInt(parts[1]) || 0; 
             return bags + (kg / bagWt);
         }
         return parseFloat(s) || 0;
     }
 
+    // Handles negative formatting seamlessly for Return Feeds
     function formatFeedStr(totalBagsFloat, bagWt, short=false) {
         if(totalBagsFloat === 0) return short ? "0B, 0kg" : "0 B & 0 kg";
+        
+        let isNeg = totalBagsFloat < 0;
+        totalBagsFloat = Math.abs(totalBagsFloat);
         
         let b = Math.floor(totalBagsFloat + 0.0001); 
         let k = Math.round((totalBagsFloat - b) * bagWt);
@@ -370,7 +388,8 @@
             k = k % bagWt; 
         }
         
-        return short ? `${b}B, ${k}kg` : `${b} B & ${k} kg`;
+        let sign = isNeg ? "-" : "";
+        return short ? `${sign}${b}B, ${k}kg` : `${sign}${b} B & ${k} kg`;
     }
 
     // ==========================================
@@ -509,9 +528,10 @@
     }
 
     function runSync() {
-        calcFeed(); 
+        // Feed calculation now returns the returned-feed data to sync to the Daily Log
+        let returnData = calcFeed(); 
         let liftingData = calcLifting(); 
-        calculateTable(liftingData); 
+        calculateTable(liftingData, returnData); 
         calcRemaining(); 
 
         if (isSyncingFromCloud || !cloudRef) return; 
@@ -519,7 +539,7 @@
         document.getElementById('saveStatus').innerText = "Saving...";
         clearTimeout(saveTimeout); 
         saveTimeout = setTimeout(function() { 
-            updateCharts();
+            updateCharts(returnData);
             saveDataToCloud(); 
         }, 1000); 
     }
@@ -597,7 +617,10 @@
             });
         } else { addLiftRow(); }
 
-        calculateTable(calcLifting()); calcFeed(); calcRemaining(); updateCharts();
+        let returnData = calcFeed();
+        calculateTable(calcLifting(), returnData); 
+        calcRemaining(); 
+        updateCharts(returnData);
     }
 
     // ==========================================
@@ -673,14 +696,31 @@
         let inventoryS = []; for(let s=1; s<=shedCount; s++) inventoryS[s] = 0;
         let totalAll = 0;
         
+        // Tracking Return Feed per Date to sync to Daily Log
+        let returnAgg = {};
+        
         for (let j = 0; j < rows.length; j++) {
-            let row = rows[j]; let type = row.cells[1].querySelector('select').value; let rowTotal = 0;
+            let row = rows[j]; 
+            let date = row.cells[0].querySelector('input').value.trim();
+            let type = row.cells[1].querySelector('select').value; 
+            let rowTotal = 0;
+            
             for(let s=1; s<=shedCount; s++) {
                 let inputEl = row.querySelector(`.bag-input.shed-${s}`);
                 if(!inputEl) continue;
                 let b = parseFeed(inputEl.value, bagWt); 
                 rowTotal += b;
-                if (type && type.includes('Return Feed')) { inventoryS[s] -= b; } else { inventoryS[s] += b; } 
+                
+                if (type && type.includes('Return Feed')) { 
+                    inventoryS[s] -= b; 
+                    if(date) {
+                        if(!returnAgg[date]) returnAgg[date] = { sheds: {}, total: 0 };
+                        returnAgg[date].sheds[s] = (returnAgg[date].sheds[s] || 0) + b;
+                        returnAgg[date].total += b;
+                    }
+                } else { 
+                    inventoryS[s] += b; 
+                } 
             }
             let totalBox = row.querySelector('.feed-row-total');
             if(totalBox) totalBox.value = rowTotal > 0 ? formatFeedStr(rowTotal, bagWt, true) : ''; 
@@ -695,6 +735,8 @@
         let totEl = document.getElementById('feed_tot_all');
         totEl.innerText = formatFeedStr(totalAll, bagWt, true);
         totEl.dataset.val = totalAll; 
+        
+        return returnAgg;
     }
 
     function calcLifting() {
@@ -740,8 +782,10 @@
         return agg; 
     }
 
-    function calculateTable(liftData) {
+    function calculateTable(liftData, returnData) {
         if(!liftData) liftData = {}; 
+        if(!returnData) returnData = {}; 
+        
         let inits = [], currentS = [], totalMorS = [], consumedFeedS = [], totalHoused = 0;
         let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
 
@@ -751,12 +795,13 @@
         }
 
         let cumulativeFeedBags = 0;
-        let cumulativeHarvestedWt = 0;
+        let cumulativeHarvestedWt = 0; 
 
         for (let i = 1; i <= totalDays; i++) {
             let dayMorTotal = 0, dayFeedTotal = 0, hasData = false, liveStock = 0;
             let dateVal = document.getElementById(`date_${i}`).value.trim();
             let liftedToday = (dateVal && liftData[dateVal]) ? liftData[dateVal] : null;
+            let returnedToday = (dateVal && returnData[dateVal]) ? returnData[dateVal] : null;
 
             if (liftedToday) {
                 cumulativeHarvestedWt += liftedToday.totalWt; 
@@ -765,14 +810,20 @@
             for(let s=1; s<=shedCount; s++) {
                 let mInput = document.getElementById(`m${s}_${i}`); let fInput = document.getElementById(`f${s}_${i}`);
                 if(!mInput) continue;
-                if(mInput.value !== '' || fInput.value !== '') hasData = true;
 
                 let m = parseInt(mInput.value) || 0; 
                 let f = parseFeed(fInput.value, bagWt); 
                 let l = (liftedToday && liftedToday.sheds[s]) ? liftedToday.sheds[s] : 0; 
+                let ret = (returnedToday && returnedToday.sheds[s]) ? returnedToday.sheds[s] : 0; 
 
-                totalMorS[s] += m; consumedFeedS[s] += f;
-                dayMorTotal += m; dayFeedTotal += f;
+                // Ensure row triggers output if Return Feed is mapped to this day
+                if(mInput.value !== '' || fInput.value !== '' || ret > 0) hasData = true;
+
+                // Net Feed completely strips out the feed swept and returned
+                let netF = f - ret;
+
+                totalMorS[s] += m; consumedFeedS[s] += netF;
+                dayMorTotal += m; dayFeedTotal += netF;
                 
                 currentS[s] -= (m + l); 
                 liveStock += currentS[s];
@@ -784,26 +835,25 @@
             if(document.getElementById(`ftot_${i}`)) { document.getElementById(`ftot_${i}`).value = hasData ? formatFeedStr(dayFeedTotal, bagWt, true) : ''; }
             cumulativeFeedBags += dayFeedTotal;
 
-            // FIXED: Secure FCR Calculation
+            // FCR Auto-Calculation: Strictly Protected Matrix
             let wt = parseFloat(document.getElementById(`wt_${i}`).value) || 0;
             let fcrField = document.getElementById(`fcr_${i}`);
             let totalDailyBiomass = (liveStock * wt) + cumulativeHarvestedWt;
             
             let canCalculateFCR = false;
             
-            // 1. If we have live birds, we MUST have a manual average weight to calculate FCR
+            // 1. If we have live birds, we MUST have an average weight to calculate FCR
             if (liveStock > 0 && wt > 0) {
                 canCalculateFCR = true;
             } 
-            // 2. If the shed is empty, total biomass is just the harvest weight. We only calculate 
-            // FCR if a harvest/feed actually happened today, to prevent trailing FCRs on empty rows.
+            // 2. If the shed is empty, total biomass is just the harvest weight. 
+            // We only calculate if a harvest/feed actually happened today.
             else if (liveStock <= 0 && totalDailyBiomass > 0) {
                 if (liftedToday || hasData || wt > 0) {
                     canCalculateFCR = true;
                 }
             }
 
-            // Print or clear the FCR box
             if (canCalculateFCR && cumulativeFeedBags > 0) {
                 fcrField.value = ((cumulativeFeedBags * bagWt) / totalDailyBiomass).toFixed(3); 
             } else {
@@ -842,19 +892,25 @@
     // ==========================================
     // 📊 CHART.JS ENGINE
     // ==========================================
-    function updateCharts() {
+    function updateCharts(returnData) {
+        if(!returnData) returnData = {};
         const labels = [], mortalityData = [], feedData = [], fcrData = [];
         let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
 
         for (let i = 1; i <= totalDays; i++) {
             labels.push("Day " + i);
+            let dateVal = document.getElementById(`date_${i}`).value.trim();
+            let returnedToday = (dateVal && returnData[dateVal]) ? returnData[dateVal] : null;
+            
             if(!document.getElementById('m1_' + i)) { mortalityData.push(null); feedData.push(null); fcrData.push(null); continue; }
             let dayMor = 0, dayFeed = 0, hasData = false;
             for(let s=1; s<=shedCount; s++) {
                 let mInput = document.getElementById(`m${s}_${i}`); let fInput = document.getElementById(`f${s}_${i}`);
-                if(mInput && fInput && (mInput.value !== '' || fInput.value !== '')) hasData = true;
+                let ret = (returnedToday && returnedToday.sheds[s]) ? returnedToday.sheds[s] : 0;
+                
+                if(mInput && fInput && (mInput.value !== '' || fInput.value !== '' || ret > 0)) hasData = true;
                 dayMor += parseInt(mInput ? mInput.value : 0) || 0; 
-                dayFeed += parseFeed(fInput ? fInput.value : '', bagWt);
+                dayFeed += parseFeed(fInput ? fInput.value : '', bagWt) - ret;
             }
             let fcrInput = document.getElementById('fcr_' + i); let fcr = fcrInput ? fcrInput.value : '';
 
@@ -866,7 +922,7 @@
         healthChartInstance = new Chart(ctxHealth, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Daily Mortality', data: mortalityData, backgroundColor: 'rgba(220, 38, 38, 0.8)' }] }, options: { responsive: true, maintainAspectRatio: false } });
         const ctxFcr = document.getElementById('fcrChart').getContext('2d');
         if (fcrChartInstance) fcrChartInstance.destroy();
-        fcrChartInstance = new Chart(ctxFcr, { type: 'line', data: { labels: labels, datasets: [ { type: 'bar', label: 'Feed (Bags)', data: feedData, backgroundColor: 'rgba(37, 99, 235, 0.7)', yAxisID: 'y' }, { type: 'line', label: 'Manual FCR Trend', data: fcrData, borderColor: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.2)', borderWidth: 3, yAxisID: 'y1' } ] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { position: 'left' }, y1: { position: 'right', grid: {drawOnChartArea: false} } } } });
+        fcrChartInstance = new Chart(ctxFcr, { type: 'line', data: { labels: labels, datasets: [ { type: 'bar', label: 'Net Daily Feed (Bags)', data: feedData, backgroundColor: 'rgba(37, 99, 235, 0.7)', yAxisID: 'y' }, { type: 'line', label: 'Manual FCR Trend', data: fcrData, borderColor: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.2)', borderWidth: 3, yAxisID: 'y1' } ] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { position: 'left' }, y1: { position: 'right', grid: {drawOnChartArea: false} } } } });
     }
 
     // ==========================================
@@ -878,6 +934,7 @@
         let bagWt = parseFloat(document.getElementById('bagWt').value)||50;
         
         let liftData = calcLifting();
+        let returnData = calcFeed(); // Fetch returns to calculate accurate FCR history
         let tLift = parseInt(document.getElementById('summary_lift_birds')?.innerText)||0;
         
         let survivingLiveStock = tInit - tMor; 
@@ -890,17 +947,21 @@
 
         for (let i = 1; i <= totalDays; i++) {
             let dayFeed = 0;
+            let dateVal = document.getElementById(`date_${i}`) ? document.getElementById(`date_${i}`).value.trim() : '';
+            let returnedToday = (dateVal && returnData[dateVal]) ? returnData[dateVal] : null;
+            let liftedToday = (dateVal && liftData[dateVal]) ? true : false;
+
             for(let s=1; s<=shedCount; s++) {
                 let fInput = document.getElementById(`f${s}_${i}`);
-                if(fInput) dayFeed += parseFeed(fInput.value, bagWt);
+                let f = 0;
+                if(fInput) f = parseFeed(fInput.value, bagWt);
+                let ret = (returnedToday && returnedToday.sheds[s]) ? returnedToday.sheds[s] : 0;
+                dayFeed += (f - ret);
             }
             cumFeed += dayFeed;
 
             let wtInput = document.getElementById(`wt_${i}`);
             let wt = wtInput ? parseFloat(wtInput.value) : 0;
-            
-            let dateVal = document.getElementById(`date_${i}`) ? document.getElementById(`date_${i}`).value.trim() : '';
-            let liftedToday = (dateVal && liftData[dateVal]) ? true : false;
 
             if (wt > 0 || liftedToday) {
                 lastEventDay = i;
