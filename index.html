@@ -406,7 +406,6 @@
         }
         document.getElementById('initShedContainer').innerHTML = initHtml;
 
-        // FIXED: Replaced general Stock/Wt/FCR with Per-Shed Wt/FCR & Hidden Stock logic
         let morH = '', feedH = '', wtH = '', fcrH = '';
         for(let s=1; s<=shedCount; s++) {
             morH += `<th class="tight-col">💀 Mor S${s}</th>`; 
@@ -436,7 +435,6 @@
         let totWtF = shedCount > 1 ? `<td></td>` : '';
         let totFcrF = shedCount > 1 ? `<td></td>` : '';
         
-        // Exact span math to keep status bar beautifully stretched
         let totalCols = 2 + (shedCount * 4) + (shedCount > 1 ? 4 : 0) + 1; 
         
         document.getElementById('dailyFoot').innerHTML = `
@@ -643,7 +641,6 @@
             document.getElementById('date_' + i).value = dayData.date || ''; 
             document.getElementById('note_' + i).value = dayData.note || '';
             
-            // Fallback for older data structure where only 1 wt existed
             let fallbackWt = dayData.wt || '';
             
             for(let s=1; s<=shedCount; s++) {
@@ -896,7 +893,6 @@
                 let f = parseFeed(fInput.value, bagWt); 
                 let l = (liftedToday && liftedToday.sheds[s]) ? liftedToday.sheds[s] : 0; 
                 
-                // Track true harvested weight from THIS shed based on truck average
                 if (l > 0) {
                     cumulativeHarvestedWtS[s] += (l * harvestAvgWt);
                 }
@@ -929,7 +925,6 @@
                 currentS[s] -= (m + l); 
                 liveStock += currentS[s];
 
-                // FCR Calc Per Shed
                 cumulativeFeedBagsS[s] += netF;
                 let wtS = parseFloat(document.getElementById(`wt${s}_${i}`).value) || 0;
                 let liveBiomassS = currentS[s] * wtS;
@@ -961,7 +956,6 @@
             cumulativeFeedBags += dayFeedTotal;
             totalDailyMor += dayMorTotal;
 
-            // Batch Overall Auto-Calc
             let batchWtField = document.getElementById(`wt_${i}`);
             let batchFcrField = document.getElementById(`fcr_${i}`);
             
@@ -1092,7 +1086,6 @@
 
         let lastEventDay = 0;
         let feedUpToLastEvent = 0;
-        let latestAvgWt = 0;
         let cumFeed = 0;
 
         for (let i = 1; i <= totalDays; i++) {
@@ -1122,28 +1115,44 @@
             }
             cumFeed += dayFeed;
 
-            // PULLS FROM THE AUTO-CALCULATED BATCH WEIGHT IF PRESENT
             let wtInput = document.getElementById(`wt_${i}`) || document.getElementById(`wt1_${i}`);
             let wt = wtInput ? parseFloat(wtInput.value) : 0;
 
             if (wt > 0 || liftedToday) {
                 lastEventDay = i;
                 feedUpToLastEvent = cumFeed;
-                if (wt > 0) {
-                    latestAvgWt = wt; 
-                } else if (liftedToday && liftedToday.totalBirds > 0) {
-                    latestAvgWt = liftedToday.totalWt / liftedToday.totalBirds;
-                }
             }
         }
 
         let tFeedKg = feedUpToLastEvent * bagWt;
         let tLiftWt = parseFloat(document.getElementById('summary_lift_wt').innerText)||0;
         
-        let birdsInShed = tInit - tMor - tLift; 
-        let liveBiomass = birdsInShed * latestAvgWt; 
-        let totalBiomass = liveBiomass + tLiftWt; 
-        
+        // FIXED: True Average Weight Logic calculated directly from Total Biomass
+        let latestAvgWt = 0;
+        let totalBiomass = 0;
+        let trueAvgWt = "N/A";
+
+        // Find the absolute latest weight to estimate live biomass
+        let finalLiveStock = tInit - tMor - tLift; 
+        if (finalLiveStock > 0) {
+            let foundWt = 0;
+            for (let i = totalDays; i >= 1; i--) {
+                let wField = document.getElementById(`wt_${i}`) || document.getElementById(`wt1_${i}`);
+                if (wField && parseFloat(wField.value) > 0) {
+                    foundWt = parseFloat(wField.value);
+                    break;
+                }
+            }
+            let liveBiomass = finalLiveStock * foundWt;
+            totalBiomass = liveBiomass + tLiftWt;
+        } else {
+            totalBiomass = tLiftWt; // If shed is completely empty
+        }
+
+        if (survivingLiveStock > 0 && totalBiomass > 0) {
+            trueAvgWt = (totalBiomass / survivingLiveStock).toFixed(3);
+        }
+
         let finalFcr = (totalBiomass > 0) ? (tFeedKg / totalBiomass).toFixed(3) : "N/A";
 
         document.getElementById('summaryContent').innerHTML = `
@@ -1154,7 +1163,7 @@
             <div class="summary-stat"><span>Total Lifted Weight</span> <strong>${tLiftWt.toFixed(2)} kg</strong></div>
             
             <div class="summary-stat" style="border-top: 2px solid #eee; margin-top: 10px; padding-top: 10px;"><span>Feed up to Event (Day ${lastEventDay})</span> <strong>${formatFeedStr(feedUpToLastEvent, bagWt, false)}</strong></div>
-            <div class="summary-stat"><span>Latest Calc. Avg Wt</span> <strong>${latestAvgWt > 0 ? latestAvgWt.toFixed(3) + " kg" : "N/A"}</strong></div>
+            <div class="summary-stat"><span>True Batch Avg Wt</span> <strong>${trueAvgWt !== "N/A" ? trueAvgWt + " kg" : "N/A"}</strong></div>
             <div class="summary-stat"><span>Calc. Total Biomass</span> <strong>${totalBiomass > 0 ? totalBiomass.toFixed(2) + " kg" : "N/A"}</strong></div>
             <div class="summary-stat" style="background:#eaf2f8; padding:10px; margin-top:5px; border-radius:4px;">
                 <span><strong>TRUE BATCH FCR</strong></span> <strong style="font-size:18px; color:var(--danger);">${finalFcr}</strong>
