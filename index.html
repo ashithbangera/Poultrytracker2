@@ -27,8 +27,10 @@
             --bg: #eef2f6; 
             --card-border: #cbd5e1;
         }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg); margin: 0; padding: 10px; color: #333; }
-        .container { max-width: 1450px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; color: #333; }
+        
+        /* FIXED: Unlocked Container Width to utilize the full monitor and prevent squishing */
+        .container { max-width: 98%; width: 100%; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-sizing: border-box; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
         h1, h2 { color: var(--primary); margin-top: 0; }
         
         /* Auth Screen */
@@ -38,20 +40,20 @@
         .input-group input, .input-group select { width: 100%; padding: 10px; border: 1px solid var(--card-border); border-radius: 5px; box-sizing: border-box; font-size: 16px; }
         
         /* Table Inputs Base */
-        input[type="number"], input[type="text"], input[type="date"], select { width: 95%; min-width: 40px; padding: 4px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 12px; text-align: center; }
+        input[type="number"], input[type="text"], input[type="date"], select { width: 95%; min-width: 40px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; text-align: center; }
         input[readonly] { background-color: #f8fafc; font-weight: 600; color: #475569; border: none; }
         
-        /* EXTREME COLUMN SQUEEZING TO PREVENT HORIZONTAL SCROLL */
+        /* INCREASED FONT SIZES & WIDER INPUTS */
         #dailyBody input[type="date"], #feedBody input[type="date"], #liftBody input[type="date"] { 
-            width: 105px !important; min-width: 105px !important; padding: 4px 1px; letter-spacing: -0.5px; font-size: 11px;
+            width: 115px !important; min-width: 115px !important; padding: 5px 2px; font-size: 13px;
         }
-        #feedHead th, #liftHead th, #dailyHead th { white-space: nowrap; padding: 5px 2px; font-size: 11px; letter-spacing: 0; }
-        #feedBody select { width: 90px !important; min-width: 90px !important; padding: 4px 1px; font-size: 11px; }
+        #feedHead th, #liftHead th, #dailyHead th { white-space: nowrap; padding: 8px 4px; font-size: 13px; }
+        #feedBody select { width: 100px !important; min-width: 100px !important; padding: 6px 2px; font-size: 13px; }
         
         #dailyBody input[type="text"], #dailyBody input[readonly], #dailyBody input[type="number"],
         #feedBody input[type="text"], #feedBody input[readonly], 
         #liftBody input[type="number"], #liftBody input[type="text"], #liftBody input[readonly] { 
-            width: 48px !important; min-width: 48px !important; padding: 4px 1px; font-size: 12px; 
+            width: 55px !important; min-width: 55px !important; padding: 6px 2px; font-size: 13px; 
         }
         
         .forgot-link { display: block; margin-top: 15px; color: var(--accent); cursor: pointer; font-size: 14px; text-decoration: underline; background: none; border: none; width: 100%; }
@@ -61,21 +63,21 @@
         .dash-card { background: #fdfefe; border: 1px solid var(--card-border); border-top: 4px solid var(--secondary); padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); }
         .dash-card h3 { border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-top: 0; color: var(--primary); }
         .input-group { margin-bottom: 15px; }
-        .input-group label { display: block; font-weight: bold; margin-bottom: 5px; color: var(--primary); }
+        .input-group label { display: block; font-weight: bold; margin-bottom: 5px; color: var(--primary); font-size: 14px; }
         
         /* Main UI */
         .header-section { border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
         .actions-bar { background: #f8fafc; padding: 10px 15px; border-radius: 6px; border: 1px solid var(--card-border); display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
         
-        /* SMARTER GRID LAYOUT: Forces stacking on laptops before a scrollbar appears */
-        .grid-layout { display: grid; grid-template-columns: 1.65fr 1.35fr; gap: 15px; }
-        @media (max-width: 1400px) { .grid-layout { grid-template-columns: 1fr; } }
+        /* SMARTER GRID LAYOUT: Forces Vertical Stacking earlier to prevent horizontal scrollbars on laptops */
+        .grid-layout { display: grid; grid-template-columns: 1.7fr 1.3fr; gap: 20px; }
+        @media (max-width: 1500px) { .grid-layout { grid-template-columns: 1fr; } }
         
-        .section { background: #fff; padding: 12px; border: 1px solid var(--card-border); border-top: 4px solid var(--accent); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); margin-bottom: 20px; }
+        .section { background: #fff; padding: 15px; border: 1px solid var(--card-border); border-top: 4px solid var(--accent); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); margin-bottom: 20px; }
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; padding-bottom: 5px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
-        th, td { border: 1px solid #cbd5e1; padding: 4px 2px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        th, td { border: 1px solid #cbd5e1; padding: 6px 3px; text-align: center; }
         th { background-color: var(--secondary); color: white; white-space: nowrap; font-weight: 600; }
         
         .tight-col { width: 1%; white-space: nowrap; }
@@ -93,8 +95,8 @@
         .btn-large { padding: 15px; font-size: 16px; width: 100%; margin-top: 10px; }
         
         /* Colorful Summary Rows */
-        .totals-row { background-color: #d1fae5; font-weight: bold; color: #064e3b; }
-        .status-row { background-color: #e0f2fe; font-weight: bold; font-size: 13px; color: #1e3a8a; }
+        .totals-row { background-color: #d1fae5; font-weight: bold; color: #064e3b; font-size: 14px; }
+        .status-row { background-color: #e0f2fe; font-weight: bold; font-size: 14px; color: #1e3a8a; }
         .save-indicator { font-size: 14px; color: var(--success); font-weight: bold; margin-right: 15px; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); z-index: 1000; align-items: center; justify-content: center; }
@@ -207,7 +209,7 @@
         <div class="section">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h2>Daily Log</h2>
-                <span style="font-size:12px; color:var(--primary); font-weight: bold;"><i>Tip: Enter feed as B.kg (e.g. 5.30)</i></span>
+                <span style="font-size:13px; color:var(--primary); font-weight: bold;"><i>Tip: Enter feed as B.kg (e.g. 5.30)</i></span>
             </div>
             <div class="table-responsive">
                 <table>
@@ -407,7 +409,6 @@
         }
         document.getElementById('initShedContainer').innerHTML = initHtml;
 
-        // FIXED: Clean Headers with Zero Emojis
         let morH = '', feedH = '', wtH = '', fcrH = '';
         for(let s=1; s<=shedCount; s++) {
             morH += `<th class="tight-col">Mor S${s}</th>`; 
@@ -418,8 +419,6 @@
         
         let totMorH = shedCount > 1 ? `<th class="tight-col">Tot Mor</th>` : '';
         let totFeedH = shedCount > 1 ? `<th class="tight-col">Tot Feed</th>` : '';
-        
-        // FIXED: Replaced "Batch Wt" and "Batch FCR" with "Avg Wt" and "FCR"
         let totWtH = shedCount > 1 ? `<th class="tight-col">Avg Wt</th>` : '';
         let totFcrH = shedCount > 1 ? `<th class="tight-col">FCR</th>` : '';
 
@@ -441,12 +440,15 @@
         
         let totalCols = 2 + (shedCount * 4) + (shedCount > 1 ? 4 : 0) + 1; 
         
+        // DYNAMIC STOCK LABEL (Individual Shed Breakdown)
+        let stockLabel = shedCount > 1 ? `<span id="tot_in_stock_individual" style="color:var(--primary);"></span> <strong>Total:</strong> <span id="tot_in_stock">0</span>` : `<span id="tot_in_stock">0</span>`;
+
         document.getElementById('dailyFoot').innerHTML = `
             <tr class="totals-row"><td colspan="2" style="text-align: right; padding-right: 10px;">TOTALS:${hiddenTotals}</td>${morF}${totMorF}${feedF}${totFeedF}${wtF}${totWtF}${fcrF}${totFcrF}<td></td></tr>
             <tr class="status-row"><td colspan="${totalCols}" style="text-align: center; padding: 12px;">
                 <span style="margin: 0 10px;"><strong>Housed:</strong> <span id="tot_housed">0</span></span> | 
                 <span style="margin: 0 10px; color: var(--danger);"><strong>Mortality:</strong> <span id="tot_mortality_footer">0</span> (<span id="tot_mort_percent">0.00</span>%)</span> | 
-                <span style="margin: 0 10px;"><strong>Stock:</strong> <span id="tot_in_stock">0</span></span> | 
+                <span style="margin: 0 10px;"><strong>Stock:</strong> ${stockLabel}</span> | 
                 <span style="margin: 0 10px;"><strong>Consumed:</strong> <span id="tot_feed_consumed" data-val="0">0 B & 0 kg</span></span> | 
                 <span style="margin: 0 10px;"><strong>Remaining:</strong> <span id="tot_feed_remaining">0 B & 0 kg</span></span>
             </td></tr>
@@ -989,12 +991,21 @@
         }
 
         let totalConsumedBags = 0, totalInStock = 0;
+        let indivStockStr = "";
+        
         for(let s=1; s<=shedCount; s++) {
             if(document.getElementById(`tot_m${s}`)) document.getElementById(`tot_m${s}`).innerText = totalMorS[s];
             if(document.getElementById(`tot_s${s}_stock`)) document.getElementById(`tot_s${s}_stock`).innerText = currentS[s];
             if(document.getElementById(`tot_f${s}`)) document.getElementById(`tot_f${s}`).innerText = formatFeedStr(consumedFeedS[s], bagWt, true);
             totalConsumedBags += consumedFeedS[s]; totalInStock += currentS[s];
+            if (shedCount > 1) {
+                indivStockStr += `S${s}: ${currentS[s]} | `;
+            }
         }
+        
+        // Pushing individual shed stock to the footer
+        let elIndivStock = document.getElementById('tot_in_stock_individual');
+        if (elIndivStock) elIndivStock.innerText = indivStockStr;
         
         let mortPercent = totalHoused > 0 ? ((totalDailyMor / totalHoused) * 100).toFixed(2) : '0.00';
         document.getElementById('tot_mortality_footer').innerText = totalDailyMor;
