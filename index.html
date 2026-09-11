@@ -27,8 +27,8 @@
             --bg: #eef2f6; 
             --card-border: #cbd5e1;
         }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; color: #333; }
-        .container { max-width: 1400px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg); margin: 0; padding: 10px; color: #333; }
+        .container { max-width: 1450px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
         h1, h2 { color: var(--primary); margin-top: 0; }
         
         /* Auth Screen */
@@ -38,18 +38,20 @@
         .input-group input, .input-group select { width: 100%; padding: 10px; border: 1px solid var(--card-border); border-radius: 5px; box-sizing: border-box; font-size: 16px; }
         
         /* Table Inputs Base */
-        input[type="number"], input[type="text"], input[type="date"], select { width: 95%; min-width: 40px; padding: 6px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 13px; text-align: center; }
+        input[type="number"], input[type="text"], input[type="date"], select { width: 95%; min-width: 40px; padding: 4px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 12px; text-align: center; }
         input[readonly] { background-color: #f8fafc; font-weight: 600; color: #475569; border: none; }
         
-        /* Table Column Sizing - Ultra Tight to prevent Overflow */
-        #dailyBody input[type="date"], #feedBody input[type="date"], #liftBody input[type="date"] { width: 110px !important; min-width: 110px !important; padding: 5px 1px; letter-spacing: -0.5px; }
-        #feedHead th, #liftHead th { white-space: nowrap; padding: 6px 2px; }
-        #feedBody select { width: 95px !important; min-width: 95px !important; padding: 6px 1px; }
+        /* EXTREME COLUMN SQUEEZING TO PREVENT HORIZONTAL SCROLL */
+        #dailyBody input[type="date"], #feedBody input[type="date"], #liftBody input[type="date"] { 
+            width: 105px !important; min-width: 105px !important; padding: 4px 1px; letter-spacing: -0.5px; font-size: 11px;
+        }
+        #feedHead th, #liftHead th, #dailyHead th { white-space: nowrap; padding: 5px 2px; font-size: 11px; letter-spacing: 0; }
+        #feedBody select { width: 90px !important; min-width: 90px !important; padding: 4px 1px; font-size: 11px; }
         
         #dailyBody input[type="text"], #dailyBody input[readonly], #dailyBody input[type="number"],
         #feedBody input[type="text"], #feedBody input[readonly], 
         #liftBody input[type="number"], #liftBody input[type="text"], #liftBody input[readonly] { 
-            width: 55px !important; min-width: 55px !important; padding: 6px 2px; 
+            width: 48px !important; min-width: 48px !important; padding: 4px 1px; font-size: 12px; 
         }
         
         .forgot-link { display: block; margin-top: 15px; color: var(--accent); cursor: pointer; font-size: 14px; text-decoration: underline; background: none; border: none; width: 100%; }
@@ -65,19 +67,18 @@
         .header-section { border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
         .actions-bar { background: #f8fafc; padding: 10px 15px; border-radius: 6px; border: 1px solid var(--card-border); display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
         
-        /* SMARTER GRID LAYOUT: Prevents tables from squishing out of bounds */
-        .grid-layout { display: grid; grid-template-columns: 1.6fr 1.4fr; gap: 20px; }
-        @media (max-width: 1350px) { .grid-layout { grid-template-columns: 1fr; } }
+        /* SMARTER GRID LAYOUT: Forces stacking on laptops before a scrollbar appears */
+        .grid-layout { display: grid; grid-template-columns: 1.65fr 1.35fr; gap: 15px; }
+        @media (max-width: 1400px) { .grid-layout { grid-template-columns: 1fr; } }
         
-        .section { background: #fff; padding: 15px; border: 1px solid var(--card-border); border-top: 4px solid var(--accent); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); margin-bottom: 20px; }
+        .section { background: #fff; padding: 12px; border: 1px solid var(--card-border); border-top: 4px solid var(--accent); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); margin-bottom: 20px; }
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; padding-bottom: 5px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-        th, td { border: 1px solid #cbd5e1; padding: 5px 3px; text-align: center; }
-        th { background-color: var(--secondary); color: white; white-space: nowrap; padding: 6px; font-weight: 600; letter-spacing: 0.5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+        th, td { border: 1px solid #cbd5e1; padding: 4px 2px; text-align: center; }
+        th { background-color: var(--secondary); color: white; white-space: nowrap; font-weight: 600; }
         
         .tight-col { width: 1%; white-space: nowrap; }
-        #dailyHead th { padding: 6px 5px; } 
         
         input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type="number"] { -moz-appearance: textfield; }
@@ -93,7 +94,7 @@
         
         /* Colorful Summary Rows */
         .totals-row { background-color: #d1fae5; font-weight: bold; color: #064e3b; }
-        .status-row { background-color: #e0f2fe; font-weight: bold; font-size: 14px; color: #1e3a8a; }
+        .status-row { background-color: #e0f2fe; font-weight: bold; font-size: 13px; color: #1e3a8a; }
         .save-indicator { font-size: 14px; color: var(--success); font-weight: bold; margin-right: 15px; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); z-index: 1000; align-items: center; justify-content: center; }
@@ -122,7 +123,7 @@
 <!-- Secure Auth Screen -->
 <div id="loginScreen">
     <div class="login-box">
-        <h2>Farm Login 🔒</h2>
+        <h2>Farm Login</h2>
         <input type="email" id="authEmail" placeholder="Email Address">
         <input type="password" id="authPassword" placeholder="Password">
         <button class="btn-primary" style="width: 100%; margin-bottom: 10px; padding: 12px;" onclick="login()">Log In</button>
@@ -135,22 +136,22 @@
 <!-- LANDING PAGE DASHBOARD -->
 <div id="landingScreen" style="display: none;" class="container">
     <div class="header-section" style="border-bottom: none;">
-        <h1>Poultry Dashboard ☁️</h1>
+        <h1>Poultry Dashboard</h1>
         <button class="btn-outline" onclick="logout()">Log Out</button>
     </div>
     
     <div class="dashboard-grid">
         <div class="dash-card">
-            <h3>📂 Select or Create Batch</h3>
+            <h3>Select or Create Batch</h3>
             <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
                 <select id="batchSelect" onchange="switchBatch()" style="flex-grow: 1; padding: 12px; font-size: 16px; font-weight: bold; color: var(--primary);"></select>
-                <button class="btn-success" style="padding: 12px;" onclick="createNewBatch()">➕ New</button>
-                <button class="btn-danger" style="padding: 12px;" onclick="deleteCurrentBatch()">🗑️</button>
+                <button class="btn-success" style="padding: 12px;" onclick="createNewBatch()">+ New</button>
+                <button class="btn-danger" style="padding: 12px;" onclick="deleteCurrentBatch()">Delete</button>
             </div>
         </div>
 
         <div class="dash-card">
-            <h3>⚙️ Farm Configuration</h3>
+            <h3>Farm Configuration</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <div class="input-group">
                     <label>Number of Sheds</label>
@@ -171,7 +172,7 @@
             <div id="initShedContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
         </div>
 
-        <button class="btn-primary btn-large" onclick="openTrackerScreen()">➡️ Open Daily Log View</button>
+        <button class="btn-primary btn-large" onclick="openTrackerScreen()">Open Daily Log View</button>
     </div>
 </div>
 
@@ -179,24 +180,24 @@
 <div id="appContainer" style="display: none;" class="container">
     <div class="header-section">
         <div style="display: flex; align-items: center; gap: 15px;">
-            <button class="btn-outline" onclick="backToDashboard()">⬅️ Back to Dashboard</button>
+            <button class="btn-outline" onclick="backToDashboard()">Back to Dashboard</button>
             <h1 style="margin: 0;">Batch: <span id="displayBatchName" style="color: var(--accent);"></span></h1>
         </div>
         <div style="display: flex; align-items: center; gap: 10px;">
             <span class="save-indicator" id="saveStatus">Connected</span>
-            <button class="btn-outline" style="padding: 10px 15px; border-color: var(--success); color: var(--success);" onclick="forceSave()">💾 Save Data</button>
-            <button class="btn-danger" style="padding: 10px 15px; font-size: 15px;" onclick="endBatchSummary()">🛑 END BATCH REPORT</button>
+            <button class="btn-outline" style="padding: 10px 15px; border-color: var(--success); color: var(--success);" onclick="forceSave()">Save Data</button>
+            <button class="btn-danger" style="padding: 10px 15px; font-size: 15px;" onclick="endBatchSummary()">END BATCH REPORT</button>
         </div>
     </div>
 
     <!-- Data Management Bar -->
     <div class="actions-bar">
         <strong>Data & Reports:</strong>
-        <button class="btn-success" onclick="exportCSV()">📄 Export Excel</button>
-        <button class="btn-outline" onclick="window.print()">🖨️ Print Report</button>
+        <button class="btn-success" onclick="exportCSV()">Export Excel</button>
+        <button class="btn-outline" onclick="window.print()">Print Report</button>
         <div style="flex-grow: 1;"></div>
-        <button class="btn-dark" onclick="downloadBackup()">💾 Save Backup File</button>
-        <button class="btn-dark" onclick="document.getElementById('importFile').click()">📂 Load Backup File</button>
+        <button class="btn-dark" onclick="downloadBackup()">Save Backup File</button>
+        <button class="btn-dark" onclick="document.getElementById('importFile').click()">Load Backup File</button>
         <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importBackup(event)">
     </div>
 
@@ -259,7 +260,7 @@
 
     <!-- ANALYTICS DASHBOARD -->
     <div class="section" style="margin-top: 20px; border-top-color: var(--primary);">
-        <h2>📊 Analytics Dashboard</h2>
+        <h2>Analytics Dashboard</h2>
         <div class="analytics-grid">
             <div class="chart-box"><canvas id="healthChart"></canvas></div>
             <div class="chart-box"><canvas id="fcrChart"></canvas></div>
@@ -278,7 +279,7 @@
 
 <script>
     // ==========================================
-    // 🔥 ROBUST FIREBASE INITIALIZATION 🔥
+    // ROBUST FIREBASE INITIALIZATION 
     // ==========================================
     const firebaseConfig = {
         apiKey: "AIzaSyB9UXdBlmPi7MTC388W2D4353TqOvr98i8",
@@ -317,7 +318,7 @@
     });
 
     // ==========================================
-    // 🖥️ NAVIGATION & AUTH CONTROLS 
+    // NAVIGATION & AUTH CONTROLS 
     // ==========================================
     function openTrackerScreen() {
         localStorage.setItem('poultryCurrentView', 'tracker');
@@ -364,7 +365,7 @@
     function logout() { firebase.auth().signOut(); localStorage.removeItem('poultryCurrentView'); }
 
     // ==========================================
-    // 🚜 EXACT LOOSE FEED PARSER & FORMATTER 
+    // EXACT LOOSE FEED PARSER & FORMATTER 
     // ==========================================
     function parseFeed(val, bagWt) {
         if (!val) return 0;
@@ -397,7 +398,7 @@
     }
 
     // ==========================================
-    // 📂 DYNAMIC HTML RENDER ENGINE
+    // DYNAMIC HTML RENDER ENGINE
     // ==========================================
     function renderDynamicStructure() {
         let initHtml = '';
@@ -406,20 +407,23 @@
         }
         document.getElementById('initShedContainer').innerHTML = initHtml;
 
+        // FIXED: Clean Headers with Zero Emojis
         let morH = '', feedH = '', wtH = '', fcrH = '';
         for(let s=1; s<=shedCount; s++) {
-            morH += `<th class="tight-col">💀 Mor S${s}</th>`; 
-            feedH += `<th class="tight-col">🌾 Feed S${s}</th>`;
-            wtH += `<th class="tight-col">⚖️ Wt S${s}</th>`;
-            fcrH += `<th class="tight-col">📈 FCR S${s}</th>`;
+            morH += `<th class="tight-col">Mor S${s}</th>`; 
+            feedH += `<th class="tight-col">Feed S${s}</th>`;
+            wtH += `<th class="tight-col">Wt S${s}</th>`;
+            fcrH += `<th class="tight-col">FCR S${s}</th>`;
         }
         
-        let totMorH = shedCount > 1 ? `<th class="tight-col">💀 Tot Mor</th>` : '';
-        let totFeedH = shedCount > 1 ? `<th class="tight-col">🌾 Tot Feed</th>` : '';
-        let totWtH = shedCount > 1 ? `<th class="tight-col">⚖️ Batch Wt</th>` : '';
-        let totFcrH = shedCount > 1 ? `<th class="tight-col">📈 Batch FCR</th>` : '';
+        let totMorH = shedCount > 1 ? `<th class="tight-col">Tot Mor</th>` : '';
+        let totFeedH = shedCount > 1 ? `<th class="tight-col">Tot Feed</th>` : '';
+        
+        // FIXED: Replaced "Batch Wt" and "Batch FCR" with "Avg Wt" and "FCR"
+        let totWtH = shedCount > 1 ? `<th class="tight-col">Avg Wt</th>` : '';
+        let totFcrH = shedCount > 1 ? `<th class="tight-col">FCR</th>` : '';
 
-        document.getElementById('dailyHead').innerHTML = `<tr><th class="tight-col">📅 Day</th><th class="tight-col">📆 Date</th>${morH}${totMorH}${feedH}${totFeedH}${wtH}${totWtH}${fcrH}${totFcrH}<th class="tight-col">📝 Remarks</th></tr>`;
+        document.getElementById('dailyHead').innerHTML = `<tr><th class="tight-col">Day</th><th class="tight-col">Date</th>${morH}${totMorH}${feedH}${totFeedH}${wtH}${totWtH}${fcrH}${totFcrH}<th class="tight-col">Remarks</th></tr>`;
 
         let morF = '', feedF = '', wtF = '', fcrF = '';
         for(let s=1; s<=shedCount; s++) {
@@ -450,18 +454,18 @@
 
         let fH = '', fF = '';
         for(let s=1; s<=shedCount; s++) {
-            fH += `<th class="tight-col">🌾 Bags S${s}</th>`; fF += `<td id="feed_tot_s${s}">0</td>`;
+            fH += `<th class="tight-col">Bags S${s}</th>`; fF += `<td id="feed_tot_s${s}">0</td>`;
         }
-        document.getElementById('feedHead').innerHTML = `<tr><th class="tight-col">📅 Date</th><th class="tight-col">🏷️ Type</th>${fH}<th class="tight-col">📊 Total</th></tr>`;
+        document.getElementById('feedHead').innerHTML = `<tr><th class="tight-col">Date</th><th class="tight-col">Type</th>${fH}<th class="tight-col">Total</th></tr>`;
         document.getElementById('feedFoot').innerHTML = `<tr class="totals-row"><td colspan="2" style="text-align: right; padding-right: 10px;">NET ARRIVALS:</td>${fF}<td id="feed_tot_all" data-val="0">0B, 0kg</td></tr>`;
 
         let liftH = '', liftF = '';
         for(let s=1; s<=shedCount; s++) {
-            liftH += `<th class="tight-col">🐔 S${s}</th>`;
+            liftH += `<th class="tight-col">S${s}</th>`;
             liftF += `<td id="lift_tot_s${s}">0</td>`;
         }
         let liftTotalCols = 5 + shedCount;
-        document.getElementById('liftHead').innerHTML = `<tr><th class="tight-col">📅 Date</th>${liftH}<th class="tight-col">📦 Boxes</th><th class="tight-col">🚚 Birds</th><th class="tight-col">⚖️ Wt(kg)</th><th class="tight-col">🎯 Avg Wt</th></tr>`;
+        document.getElementById('liftHead').innerHTML = `<tr><th class="tight-col">Date</th>${liftH}<th class="tight-col">Boxes</th><th class="tight-col">Birds</th><th class="tight-col">Wt(kg)</th><th class="tight-col">Avg Wt</th></tr>`;
         document.getElementById('liftFoot').innerHTML = `
             <tr class="totals-row"><td style="text-align: right; padding-right: 10px;">LIFTED:</td>${liftF}<td id="lift_tot_boxes">0</td><td id="lift_tot_birds">0</td><td id="lift_tot_wt">0</td><td id="lift_avg_wt">0.000</td></tr>
             <tr class="status-row"><td colspan="${liftTotalCols}" style="text-align: center; padding: 12px; color: #1e3a8a;">
@@ -481,7 +485,7 @@
     }
 
     // ==========================================
-    // 📂 BATCH & CLOUD SYSTEM
+    // BATCH & CLOUD SYSTEM
     // ==========================================
     window.onload = function() {
         renderDynamicStructure();
@@ -552,7 +556,7 @@
                 isSyncingFromCloud = true; 
                 try { loadCloudData(data); } catch(e) { console.error("Load Error:", e); }
                 isSyncingFromCloud = false; 
-                document.getElementById('saveStatus').innerText = "✅ Up to date"; 
+                document.getElementById('saveStatus').innerText = "Up to date"; 
             }
         });
     }
@@ -572,7 +576,7 @@
 
         if (isSyncingFromCloud || !cloudRef) return; 
         
-        document.getElementById('saveStatus').innerText = "⏳ Saving...";
+        document.getElementById('saveStatus').innerText = "Saving...";
         clearTimeout(saveTimeout); 
         saveTimeout = setTimeout(function() { 
             updateCharts(feedAgg);
@@ -619,10 +623,10 @@
         if(!cloudRef) return;
         isLocalSave = true; 
         cloudRef.set(buildDataObject()).then(() => { 
-            document.getElementById('saveStatus').innerText = "✅ Up to date"; 
+            document.getElementById('saveStatus').innerText = "Up to date"; 
             setTimeout(() => { isLocalSave = false; }, 800); 
         }).catch(err => { 
-            document.getElementById('saveStatus').innerText = "❌ Sync Error"; 
+            document.getElementById('saveStatus').innerText = "Sync Error"; 
             isLocalSave = false; 
         });
     }
@@ -671,7 +675,7 @@
     }
 
     // ==========================================
-    // 📅 CALENDARS & ROW MANAGEMENT
+    // CALENDARS & ROW MANAGEMENT
     // ==========================================
     function generateDailyTable(days) { document.getElementById('dailyBody').innerHTML = ''; for (let i = 1; i <= days; i++) { appendDailyRowHTML(i); } totalDays = days; }
     
@@ -742,7 +746,7 @@
     function removeLiftRow() { const tb = document.getElementById('liftBody'); if(tb.lastChild) { tb.removeChild(tb.lastChild); runSync(); } }
 
     // ==========================================
-    // ⚙️ CALCULATIONS & MATH
+    // CALCULATIONS & MATH
     // ==========================================
     function calcFeed() {
         let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
@@ -1017,7 +1021,7 @@
     }
 
     // ==========================================
-    // 📊 CHART.JS ENGINE
+    // CHART.JS ENGINE
     // ==========================================
     function updateCharts(feedAgg) {
         if (typeof Chart === 'undefined') return; 
@@ -1058,7 +1062,7 @@
     }
 
     // ==========================================
-    // 🛑 END BATCH SUMMARY & EXPORTS
+    // END BATCH SUMMARY & EXPORTS
     // ==========================================
     function endBatchSummary() {
         let tInit = parseInt(document.getElementById('tot_housed').innerText)||0;
@@ -1127,12 +1131,10 @@
         let tFeedKg = feedUpToLastEvent * bagWt;
         let tLiftWt = parseFloat(document.getElementById('summary_lift_wt').innerText)||0;
         
-        // FIXED: True Average Weight Logic calculated directly from Total Biomass
         let latestAvgWt = 0;
         let totalBiomass = 0;
         let trueAvgWt = "N/A";
 
-        // Find the absolute latest weight to estimate live biomass
         let finalLiveStock = tInit - tMor - tLift; 
         if (finalLiveStock > 0) {
             let foundWt = 0;
@@ -1146,7 +1148,7 @@
             let liveBiomass = finalLiveStock * foundWt;
             totalBiomass = liveBiomass + tLiftWt;
         } else {
-            totalBiomass = tLiftWt; // If shed is completely empty
+            totalBiomass = tLiftWt; 
         }
 
         if (survivingLiveStock > 0 && totalBiomass > 0) {
@@ -1179,9 +1181,9 @@
         for(let s=1; s<=shedCount; s++) csv += `Feed S${s},`; 
         if (shedCount > 1) csv += "Total Feed,";
         for(let s=1; s<=shedCount; s++) csv += `Wt S${s},`; 
-        if (shedCount > 1) csv += "Batch Wt,";
+        if (shedCount > 1) csv += "Avg Wt,";
         for(let s=1; s<=shedCount; s++) csv += `FCR S${s},`; 
-        if (shedCount > 1) csv += "Batch FCR,";
+        if (shedCount > 1) csv += "FCR,";
         csv += "Remarks\n";
 
         for (let i = 1; i <= totalDays; i++) {
