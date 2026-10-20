@@ -29,7 +29,7 @@
         }
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; color: #333; }
         
-        /* FIXED: Unlocked Container Width to utilize the full monitor and prevent squishing */
+        /* Unlocked Container Width to utilize the full monitor and prevent squishing */
         .container { max-width: 98%; width: 100%; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-sizing: border-box; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
         h1, h2 { color: var(--primary); margin-top: 0; }
         
@@ -70,8 +70,8 @@
         .actions-bar { background: #f8fafc; padding: 10px 15px; border-radius: 6px; border: 1px solid var(--card-border); display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
         
         /* SMARTER GRID LAYOUT: Forces Vertical Stacking earlier to prevent horizontal scrollbars on laptops */
-        .grid-layout { display: grid; grid-template-columns: 1.7fr 1.3fr; gap: 20px; }
-        @media (max-width: 1500px) { .grid-layout { grid-template-columns: 1fr; } }
+        .grid-layout { display: grid; grid-template-columns: 1.6fr 1.4fr; gap: 20px; }
+        @media (max-width: 1600px) { .grid-layout { grid-template-columns: 1fr; } }
         
         .section { background: #fff; padding: 15px; border: 1px solid var(--card-border); border-top: 4px solid var(--accent); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); margin-bottom: 20px; }
         .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; padding-bottom: 5px; }
@@ -281,6 +281,27 @@
 
 <script>
     // ==========================================
+    // INTEGRATOR STANDARD CHART DATA (Days 1 - 42)
+    // ==========================================
+    const STANDARD_DATA = [
+        { f: '-', w: '-', fcr: '-' }, // Day 0 placeholder
+        { f: 18, w: 0.058, fcr: 0.31 }, { f: 19, w: 0.078, fcr: 0.47 }, { f: 20, w: 0.100, fcr: 0.57 },
+        { f: 21, w: 0.122, fcr: 0.64 }, { f: 23, w: 0.146, fcr: 0.69 }, { f: 26, w: 0.170, fcr: 0.75 },
+        { f: 29, w: 0.195, fcr: 0.80 }, { f: 30, w: 0.221, fcr: 0.84 }, { f: 32, w: 0.250, fcr: 0.87 },
+        { f: 36, w: 0.282, fcr: 0.90 }, { f: 41, w: 0.317, fcr: 0.93 }, { f: 46, w: 0.355, fcr: 0.96 },
+        { f: 51, w: 0.396, fcr: 0.99 }, { f: 58, w: 0.440, fcr: 1.02 }, { f: 61, w: 0.488, fcr: 1.05 },
+        { f: 68, w: 0.540, fcr: 1.07 }, { f: 75, w: 0.596, fcr: 1.10 }, { f: 83, w: 0.657, fcr: 1.12 },
+        { f: 92, w: 0.723, fcr: 1.15 }, { f: 102, w: 0.794, fcr: 1.17 }, { f: 113, w: 0.870, fcr: 1.20 },
+        { f: 110, w: 0.948, fcr: 1.22 }, { f: 114, w: 1.026, fcr: 1.24 }, { f: 117, w: 1.104, fcr: 1.26 },
+        { f: 120, w: 1.182, fcr: 1.27 }, { f: 123, w: 1.260, fcr: 1.29 }, { f: 128, w: 1.340, fcr: 1.31 },
+        { f: 133, w: 1.420, fcr: 1.33 }, { f: 137, w: 1.500, fcr: 1.35 }, { f: 140, w: 1.584, fcr: 1.36 },
+        { f: 143, w: 1.668, fcr: 1.38 }, { f: 149, w: 1.754, fcr: 1.40 }, { f: 154, w: 1.842, fcr: 1.42 },
+        { f: 157, w: 1.930, fcr: 1.43 }, { f: 166, w: 2.020, fcr: 1.45 }, { f: 169, w: 2.110, fcr: 1.47 },
+        { f: 173, w: 2.200, fcr: 1.49 }, { f: 176, w: 2.290, fcr: 1.51 }, { f: 180, w: 2.380, fcr: 1.52 },
+        { f: 183, w: 2.470, fcr: 1.54 }, { f: 186, w: 2.560, fcr: 1.56 }, { f: 192, w: 2.650, fcr: 1.58 }
+    ];
+
+    // ==========================================
     // ROBUST FIREBASE INITIALIZATION 
     // ==========================================
     const firebaseConfig = {
@@ -422,7 +443,12 @@
         let totWtH = shedCount > 1 ? `<th class="tight-col">Avg Wt</th>` : '';
         let totFcrH = shedCount > 1 ? `<th class="tight-col">FCR</th>` : '';
 
-        document.getElementById('dailyHead').innerHTML = `<tr><th class="tight-col">Day</th><th class="tight-col">Date</th>${morH}${totMorH}${feedH}${totFeedH}${wtH}${totWtH}${fcrH}${totFcrH}<th class="tight-col">Remarks</th></tr>`;
+        // Inject Standard Columns
+        let stdFeedH = `<th class="tight-col" style="background-color: #334155;">Std Fd(g)</th>`;
+        let stdWtH = `<th class="tight-col" style="background-color: #334155;">Std Wt(kg)</th>`;
+        let stdFcrH = `<th class="tight-col" style="background-color: #334155;">Std FCR</th>`;
+
+        document.getElementById('dailyHead').innerHTML = `<tr><th class="tight-col">Day</th><th class="tight-col">Date</th>${morH}${totMorH}${feedH}${totFeedH}${stdFeedH}${wtH}${totWtH}${stdWtH}${fcrH}${totFcrH}${stdFcrH}<th class="tight-col">Remarks</th></tr>`;
 
         let morF = '', feedF = '', wtF = '', fcrF = '';
         for(let s=1; s<=shedCount; s++) {
@@ -438,13 +464,12 @@
         let totWtF = shedCount > 1 ? `<td></td>` : '';
         let totFcrF = shedCount > 1 ? `<td></td>` : '';
         
-        let totalCols = 2 + (shedCount * 4) + (shedCount > 1 ? 4 : 0) + 1; 
+        let totalCols = 2 + (shedCount * 4) + (shedCount > 1 ? 4 : 0) + 3 + 1; 
         
-        // DYNAMIC STOCK LABEL (Individual Shed Breakdown)
         let stockLabel = shedCount > 1 ? `<span id="tot_in_stock_individual" style="color:var(--primary);"></span> <strong>Total:</strong> <span id="tot_in_stock">0</span>` : `<span id="tot_in_stock">0</span>`;
 
         document.getElementById('dailyFoot').innerHTML = `
-            <tr class="totals-row"><td colspan="2" style="text-align: right; padding-right: 10px;">TOTALS:${hiddenTotals}</td>${morF}${totMorF}${feedF}${totFeedF}${wtF}${totWtF}${fcrF}${totFcrF}<td></td></tr>
+            <tr class="totals-row"><td colspan="2" style="text-align: right; padding-right: 10px;">TOTALS:${hiddenTotals}</td>${morF}${totMorF}${feedF}${totFeedF}<td></td>${wtF}${totWtF}<td></td>${fcrF}${totFcrF}<td></td><td></td></tr>
             <tr class="status-row"><td colspan="${totalCols}" style="text-align: center; padding: 12px;">
                 <span style="margin: 0 10px;"><strong>Housed:</strong> <span id="tot_housed">0</span></span> | 
                 <span style="margin: 0 10px; color: var(--danger);"><strong>Mortality:</strong> <span id="tot_mortality_footer">0</span> (<span id="tot_mort_percent">0.00</span>%)</span> | 
@@ -686,6 +711,11 @@
         let dateInput = i === 1 ? `<input type="date" id="date_1" onchange="autoFillDates(); runSync();">` : `<input type="date" id="date_${i}" onchange="runSync()">`;
         const tr = document.createElement('tr'); tr.id = 'row_' + i;
         
+        let std = (i <= 42) ? STANDARD_DATA[i] : { f: '-', w: '-', fcr: '-' };
+        let sFd = std.f !== '-' ? std.f + 'g' : '-';
+        let sWt = std.w !== '-' ? std.w.toFixed(3) : '-';
+        let sFcr = std.fcr !== '-' ? std.fcr.toFixed(2) : '-';
+
         let morCells = '', feedCells = '', wtCells = '', fcrCells = '';
         for(let s=1; s<=shedCount; s++) {
             morCells += `<td><input type="number" id="m${s}_${i}" onchange="runSync()"></td>`;
@@ -696,10 +726,15 @@
         
         let totMorCell = shedCount > 1 ? `<td><input type="text" id="dtot_${i}" readonly></td>` : '';
         let totFeedCell = shedCount > 1 ? `<td><input type="text" id="ftot_${i}" readonly></td>` : '';
-        let totWtCellOutput = shedCount > 1 ? `<td><input type="text" id="wt_${i}" readonly placeholder="-"></td>` : `<input type="hidden" id="wt_${i}">`;
-        let totFcrCellOutput = shedCount > 1 ? `<td><input type="text" id="fcr_${i}" readonly placeholder="-"></td>` : `<input type="hidden" id="fcr_${i}">`;
+        let stdFeedCell = `<td style="background-color: #f1f5f9; color: #475569; font-weight: bold; font-size: 11px;">${sFd}</td>`;
         
-        tr.innerHTML = `<td><strong>${i}</strong></td><td>${dateInput}</td>${morCells}${totMorCell}${feedCells}${totFeedCell}${wtCells}${totWtCellOutput}${fcrCells}${totFcrCellOutput}<td><input type="text" id="note_${i}" onchange="runSync()"></td>`;
+        let totWtCellOutput = shedCount > 1 ? `<td><input type="text" id="wt_${i}" readonly placeholder="-"></td>` : `<input type="hidden" id="wt_${i}">`;
+        let stdWtCell = `<td style="background-color: #f1f5f9; color: #475569; font-weight: bold; font-size: 11px;">${sWt}</td>`;
+        
+        let totFcrCellOutput = shedCount > 1 ? `<td><input type="text" id="fcr_${i}" readonly placeholder="-"></td>` : `<input type="hidden" id="fcr_${i}">`;
+        let stdFcrCell = `<td style="background-color: #f1f5f9; color: #475569; font-weight: bold; font-size: 11px;">${sFcr}</td>`;
+        
+        tr.innerHTML = `<td><strong>${i}</strong></td><td>${dateInput}</td>${morCells}${totMorCell}${feedCells}${totFeedCell}${stdFeedCell}${wtCells}${totWtCellOutput}${stdWtCell}${fcrCells}${totFcrCellOutput}${stdFcrCell}<td><input type="text" id="note_${i}" onchange="runSync()"></td>`;
         tbody.appendChild(tr);
     }
     
@@ -1003,7 +1038,6 @@
             }
         }
         
-        // Pushing individual shed stock to the footer
         let elIndivStock = document.getElementById('tot_in_stock_individual');
         if (elIndivStock) elIndivStock.innerText = indivStockStr;
         
@@ -1191,27 +1225,38 @@
         if (shedCount > 1) csv += "Total Mor,";
         for(let s=1; s<=shedCount; s++) csv += `Feed S${s},`; 
         if (shedCount > 1) csv += "Total Feed,";
+        csv += "Std Feed(g),";
         for(let s=1; s<=shedCount; s++) csv += `Wt S${s},`; 
         if (shedCount > 1) csv += "Avg Wt,";
+        csv += "Std Wt(kg),";
         for(let s=1; s<=shedCount; s++) csv += `FCR S${s},`; 
         if (shedCount > 1) csv += "FCR,";
-        csv += "Remarks\n";
+        csv += "Std FCR,Remarks\n";
 
         for (let i = 1; i <= totalDays; i++) {
             if(!document.getElementById('m1_' + i)) continue;
             let dateVal = document.getElementById('date_' + i) ? document.getElementById('date_' + i).value : '';
             if (dateVal) { let p = dateVal.split('-'); if (p.length === 3) dateVal = `${p[2]}/${p[1]}/${p[0]}`; }
             
+            let std = (i <= 42) ? STANDARD_DATA[i] : { f: '', w: '', fcr: '' };
+            
             let row = [i, `"${dateVal}"`];
             for(let s=1; s<=shedCount; s++) row.push(document.getElementById(`m${s}_${i}`).value);
             if (shedCount > 1) row.push(document.getElementById('dtot_' + i).value);
             for(let s=1; s<=shedCount; s++) row.push(`"${document.getElementById(`f${s}_${i}`).value}"`);
             if (shedCount > 1) row.push(`"${document.getElementById('ftot_' + i).value}"`);
+            
+            row.push(`"${std.f}"`);
+            
             for(let s=1; s<=shedCount; s++) row.push(document.getElementById(`wt${s}_${i}`).value);
             if (shedCount > 1) row.push(document.getElementById('wt_' + i).value);
+            
+            row.push(`"${std.w}"`);
+            
             for(let s=1; s<=shedCount; s++) row.push(document.getElementById(`fcr${s}_${i}`).value);
             if (shedCount > 1) row.push(document.getElementById('fcr_' + i).value);
             
+            row.push(`"${std.fcr}"`);
             row.push(`"${document.getElementById('note_' + i).value}"`);
             csv += row.join(",") + "\n";
         }
