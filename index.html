@@ -450,7 +450,6 @@
         let totFeedH = shedCount > 1 ? `<th class="tight-col">Tot Feed</th>` : '';
         let totWtH = shedCount > 1 ? `<th class="tight-col">Avg Wt</th>` : '';
         
-        // NEW COMBINED FCR HEADER
         let combinedFcrH = `<th class="tight-col">Act FCR</th>`;
 
         let stdFeedH = `<th class="tight-col" style="background-color: #334155;">Std Fd(g)</th>`;
@@ -472,7 +471,6 @@
         let totWtF = shedCount > 1 ? `<td></td>` : '';
         let combinedFcrF = `<td></td>`;
         
-        // Colspan math: 2(Day,Date) + 3*s(Mor,Feed,Wt) + (s>1? 3:0)(Totals) + 1(Act Fcr) + 3(Stds) + 1(Remarks)
         let totalCols = 2 + (shedCount * 3) + (shedCount > 1 ? 3 : 0) + 1 + 3 + 1; 
         
         let stockLabel = shedCount > 1 ? `<span id="tot_in_stock_individual" style="color:var(--primary);"></span> <strong>Total:</strong> <span id="tot_in_stock">0</span>` : `<span id="tot_in_stock">0</span>`;
@@ -773,17 +771,16 @@
             morCells += `<td><input type="number" id="m${s}_${i}" onchange="runSync()"></td>`;
             feedCells += `<td><input type="text" id="f${s}_${i}" placeholder="B.kg" onchange="runSync()"></td>`;
             wtCells += `<td><input type="number" step="any" id="wt${s}_${i}" onchange="runSync()"></td>`;
-            // Hidden instead of visible columns
             hiddenFcrInputs += `<input type="hidden" id="fcr${s}_${i}">`;
         }
         
         let totMorCell = shedCount > 1 ? `<td><input type="text" id="dtot_${i}" readonly></td>` : '';
         let totFeedCell = shedCount > 1 ? `<td><input type="text" id="ftot_${i}" readonly></td>` : '';
-        
         let totWtCellOutput = shedCount > 1 ? `<td><input type="text" id="wt_${i}" readonly placeholder="-"></td>` : `<input type="hidden" id="wt_${i}">`;
+        
         let hiddenBatchFcr = shedCount > 1 ? `<input type="hidden" id="fcr_${i}">` : `<input type="hidden" id="fcr_${i}">`;
 
-        // THE NEW COMBINED FCR CELL
+        // FIXED: ADDED white-space: nowrap TO PREVENT LINE BREAKS ON THE SLASHES
         let combinedFcrCell = `<td>${hiddenFcrInputs}${hiddenBatchFcr}<div id="display_fcr_${i}" style="line-height: 1.4; min-height: 24px;">-</div></td>`;
 
         let stdFeedCell = `<td style="background-color: #f1f5f9; color: #475569; font-weight: bold; font-size: 11px;">${sFd}</td>`;
@@ -1090,7 +1087,7 @@
                 if (batchFcrField) batchFcrField.value = '';
             }
             
-            // DYNAMIC COMBINED FCR UI RENDER
+            // FIXED: Render Combined FCR carefully onto a single line
             let dispDiv = document.getElementById(`display_fcr_${i}`);
             if (dispDiv) {
                 if (shedCount > 1) {
@@ -1105,7 +1102,8 @@
                     if (!hasShedFcr && !bVal) {
                         dispDiv.innerHTML = '-';
                     } else {
-                        dispDiv.innerHTML = `<div style="color: #64748b; font-size: 10px; margin-bottom: 2px;">${sFcrs.join(' / ')}</div><strong style="font-size: 14px; color: var(--primary);">${bVal ? bVal : '-'}</strong>`;
+                        // Added white-space: nowrap to prevent breaks!
+                        dispDiv.innerHTML = `<div style="color: #64748b; font-size: 10px; margin-bottom: 2px; white-space: nowrap;">${sFcrs.join(' / ')}</div><strong style="font-size: 14px; color: var(--primary);">${bVal ? bVal : '-'}</strong>`;
                     }
                 } else {
                     let val = document.getElementById(`fcr1_${i}`).value;
