@@ -599,6 +599,7 @@
         generateDailyTable(45);
         document.getElementById('feedBody').innerHTML = ''; addFeedRow();
         document.getElementById('liftBody').innerHTML = ''; addLiftRow();
+        runSync(); // Forces charts to initialize immediately on startup!
     };
 
     function loadUserBatches(uid) {
@@ -670,23 +671,23 @@
 
     function forceSave() {
         if(saveTimeout) clearTimeout(saveTimeout);
-        let feedAgg = calcFeed(); 
-        updateCharts(feedAgg);
+        runSync(); 
         saveDataToCloud();
     }
 
+    // FIXED: Charts now calculate and draw unconditionally, even if the user goes completely offline.
     function runSync() {
         let feedAgg = calcFeed(); 
         let liftingData = calcLifting(); 
         calculateTable(liftingData, feedAgg); 
         calcRemaining(); 
+        updateCharts(feedAgg); // Charts update instantly!
 
         if (isSyncingFromCloud || !cloudRef) return; 
         
         document.getElementById('saveStatus').innerText = "Saving...";
         clearTimeout(saveTimeout); 
         saveTimeout = setTimeout(function() { 
-            updateCharts(feedAgg);
             saveDataToCloud(); 
         }, 1000); 
     }
@@ -772,10 +773,7 @@
             });
         } else { addLiftRow(); }
 
-        let feedAgg = calcFeed();
-        calculateTable(calcLifting(), feedAgg); 
-        calcRemaining(); 
-        updateCharts(feedAgg);
+        runSync(); 
     }
 
     // ==========================================
@@ -1094,62 +1092,69 @@
     // CHART ENGINE WITH BULLETPROOF INTERPOLATION
     // ==========================================
     function interpolateArray(arr) {
-        let n = arr.length;
-        let result = [...arr];
-        
-        let validIndices = [];
-        for (let i = 0; i < n; i++) {
-            if (result[i] !== null && !isNaN(result[i])) validIndices.push(i);
-        }
-        
-        if (validIndices.length === 0) return result;
-        
-        // 1. Interpolate internal gaps between valid logged points
-        for (let k = 0; k < validIndices.length - 1; k++) {
-            let idx1 = validIndices[k];
-            let idx2 = validIndices[k+1];
-            if (idx2 - idx1 > 1) {
-                let steps = idx2 - idx1;
-                let diff = result[idx2] - result[idx1];
-                for (let j = 1; j < steps; j++) {
-                    result[idx1 + j] = result[idx1] + (diff * (j / steps));
-                }
-            }
-        }
-        
-        // 2. Extrapolate safely forward ONLY if daily activity exists
-        let lastIdx = validIndices[validIndices.length - 1];
-        if (lastIdx < n - 1 && validIndices.length >= 2) {
-            let slope = 0;
-            let count = 0;
-            for (let k = validIndices.length - 1; k > 0; k--) {
-                let i2 = validIndices[k];
-                let i1 = validIndices[k-1];
-                slope += (result[i2] - result[i1]) / (i2 - i1);
-                count++;
-                if (count >= 3) break; 
-            }
-            let avgSlope = slope / count;
+        try {
+            let n = arr.length;
+            let result = [...arr];
             
-            for (let i = lastIdx + 1; i < n; i++) {
-                let hasActivity = false;
-                for (let s = 1; s <= shedCount; s++) {
-                    let m = document.getElementById(`m${s}_${i+1}`);
-                    let f = document.getElementById(`f${s}_${i+1}`);
-                    let w = document.getElementById(`wt${s}_${i+1}`);
-                    if ((m && m.value !== '') || (f && f.value !== '') || (w && w.value !== '')) {
-                        hasActivity = true; break;
+            let validIndices = [];
+            for (let i = 0; i < n; i++) {
+                if (result[i] !== null && !isNaN(result[i])) validIndices.push(i);
+            }
+            
+            if (validIndices.length === 0) return result;
+            
+            // 1. Interpolate internal gaps between valid logged points
+            for (let k = 0; k < validIndices.length - 1; k++) {
+                let idx1 = validIndices[k];
+                let idx2 = validIndices[k+1];
+                if (idx2 - idx1 > 1) {
+                    let steps = idx2 - idx1;
+                    let diff = result[idx2] - result[idx1];
+                    for (let j = 1; j < steps; j++) {
+                        result[idx1 + j] = result[idx1] + (diff * (j / steps));
                     }
                 }
+            }
+            
+            // 2. Extrapolate safely forward ONLY if daily activity exists
+            let lastIdx = validIndices[validIndices.length - 1];
+            if (lastIdx < n - 1 && validIndices.length >= 2) {
+                let slope = 0;
+                let count = 0;
+                for (let k = validIndices.length - 1; k > 0; k--) {
+                    let i2 = validIndices[k];
+                    let i1 = validIndices[k-1];
+                    let deltaX = i2 - i1;
+                    if (deltaX > 0) {
+                        slope += (result[i2] - result[i1]) / deltaX;
+                        count++;
+                        if (count >= 3) break; 
+                    }
+                }
+                let avgSlope = count > 0 ? (slope / count) : 0;
                 
-                if (hasActivity) {
-                    result[i] = result[i-1] + avgSlope;
-                } else {
-                    break; // Stop instantly to prevent NaN drops
+                for (let i = lastIdx + 1; i < n; i++) {
+                    let hasActivity = false;
+                    for (let s = 1; s <= shedCount; s++) {
+                        let m = document.getElementById(`m${s}_${i+1}`);
+                        let f = document.getElementById(`f${s}_${i+1}`);
+                        let w = document.getElementById(`wt${s}_${i+1}`);
+                        if ((m && m.value !== '') || (f && f.value !== '') || (w && w.value !== '')) {
+                            hasActivity = true; break;
+                        }
+                    }
+                    if (hasActivity) {
+                        result[i] = result[i-1] + avgSlope;
+                    } else {
+                        break; // Stop instantly to prevent NaN crashes
+                    }
                 }
             }
+            return result;
+        } catch (e) {
+            console.error("Interpolation Error:", e);
+            return arr; 
         }
-        return result;
     }
 
     function updateCharts(feedAgg) {
@@ -1202,7 +1207,7 @@
         wtChartInstance = new Chart(ctxWt, { 
             type: 'line', 
             data: { labels: labels, datasets: [
-                { label: 'Actual Avg Wt (kg)', data: smoothWtData, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.3, pointRadius: 2 },
+                { label: 'Actual Avg Wt (kg)', data: smoothWtData, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.3, pointRadius: 3, spanGaps: true },
                 { label: 'Standard Target', data: stdWtData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
             ]}, 
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Growth (Weight)' } } } 
@@ -1213,7 +1218,7 @@
         fcrOnlyChartInstance = new Chart(ctxFcr, { 
             type: 'line', 
             data: { labels: labels, datasets: [
-                { label: 'Actual FCR', data: smoothFcrData, borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.3, pointRadius: 2 },
+                { label: 'Actual FCR', data: smoothFcrData, borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.3, pointRadius: 3, spanGaps: true },
                 { label: 'Standard FCR Target', data: stdFcrData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
             ]}, 
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Feed Conversion Ratio (FCR)' } } } 
