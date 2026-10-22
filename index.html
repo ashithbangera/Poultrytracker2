@@ -411,9 +411,7 @@
         let isDark = document.body.classList.contains('dark-mode');
         localStorage.setItem('poultryDarkMode', isDark);
         applyChartTheme();
-        if (document.getElementById('appContainer').offsetWidth > 0) {
-            updateCharts(calcFeed()); 
-        }
+        runSync(); 
     }
 
     if (localStorage.getItem('poultryDarkMode') === 'true') {
@@ -489,7 +487,7 @@
         document.getElementById('appContainer').style.display = 'block';
         document.getElementById('displayBatchName').innerText = currentBatch || "N/A";
         
-        // Wait 100ms for screen to render, then fire sync and draw charts safely
+        // Wait 100ms for screen to be fully visible before rebuilding charts
         setTimeout(() => { runSync(); }, 100); 
     }
     function backToDashboard() {
@@ -754,16 +752,15 @@
         saveDataToCloud();
     }
 
+    // MAIN SYNC & RENDER TRIGGER
     function runSync() {
         let feedAgg = calcFeed(); 
         let liftingData = calcLifting(); 
         calculateTable(liftingData, feedAgg); 
         calcRemaining(); 
         
-        // ONLY RENDER IF SCREEN IS TRULY VISIBLE (Fixes Chart.js 0x0 canvas crash)
-        if (document.getElementById('appContainer').offsetWidth > 0) {
-            updateCharts(feedAgg);
-        }
+        // FORCING CANVAS REBUILD EVERY SINGLE TIME DATA SYNCS OR REFRESHES
+        updateCharts(feedAgg);
 
         if (isSyncingFromCloud || !cloudRef) return; 
         
@@ -1194,16 +1191,19 @@
     }
 
     // ==========================================
-    // CHART ENGINE - FIXED CANVAS REBUILD
+    // CHART ENGINE - BULLETPROOF CANVAS REBUILD
     // ==========================================
     function getFreshCanvas(id) {
         let oldCanvas = document.getElementById(id);
-        let container = oldCanvas.parentElement;
-        oldCanvas.remove();
-        let newCanvas = document.createElement('canvas');
-        newCanvas.id = id;
-        container.appendChild(newCanvas);
-        return newCanvas.getContext('2d');
+        if (oldCanvas) {
+            let container = oldCanvas.parentElement;
+            oldCanvas.remove();
+            let newCanvas = document.createElement('canvas');
+            newCanvas.id = id;
+            container.appendChild(newCanvas);
+            return newCanvas.getContext('2d');
+        }
+        return null;
     }
 
     function updateCharts(feedAgg) {
@@ -1250,46 +1250,54 @@
 
         if (wtChartInstance) wtChartInstance.destroy();
         const ctxWt = getFreshCanvas('wtChart');
-        wtChartInstance = new Chart(ctxWt, { 
-            type: 'line', 
-            data: { labels: labels, datasets: [
-                { label: 'Actual Avg Wt (kg)', data: actualWtData, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.1, pointRadius: 4, spanGaps: true },
-                { label: 'Standard Target', data: stdWtData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
-            ]}, 
-            options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Growth (Weight)' } } } 
-        });
+        if (ctxWt) {
+            wtChartInstance = new Chart(ctxWt, { 
+                type: 'line', 
+                data: { labels: labels, datasets: [
+                    { label: 'Actual Avg Wt (kg)', data: actualWtData, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.1, pointRadius: 4, spanGaps: true },
+                    { label: 'Standard Target', data: stdWtData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
+                ]}, 
+                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Growth (Weight)' } } } 
+            });
+        }
 
         if (fcrOnlyChartInstance) fcrOnlyChartInstance.destroy();
         const ctxFcr = getFreshCanvas('fcrOnlyChart');
-        fcrOnlyChartInstance = new Chart(ctxFcr, { 
-            type: 'line', 
-            data: { labels: labels, datasets: [
-                { label: 'Actual FCR', data: actualFcrData, borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.1, pointRadius: 4, spanGaps: true },
-                { label: 'Standard FCR Target', data: stdFcrData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
-            ]}, 
-            options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Feed Conversion Ratio (FCR)' } } } 
-        });
+        if (ctxFcr) {
+            fcrOnlyChartInstance = new Chart(ctxFcr, { 
+                type: 'line', 
+                data: { labels: labels, datasets: [
+                    { label: 'Actual FCR', data: actualFcrData, borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.1, pointRadius: 4, spanGaps: true },
+                    { label: 'Standard FCR Target', data: stdFcrData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
+                ]}, 
+                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Feed Conversion Ratio (FCR)' } } } 
+            });
+        }
 
         if (intakeChartInstance) intakeChartInstance.destroy();
         const ctxIntake = getFreshCanvas('intakeChart');
-        intakeChartInstance = new Chart(ctxIntake, { 
-            type: 'line', 
-            data: { labels: labels, datasets: [
-                { label: 'Actual Intake (g/bird)', data: actualFeedGramsData, borderColor: '#f59e0b', backgroundColor: '#f59e0b', tension: 0.1, spanGaps: true, pointRadius: 4 },
-                { label: 'Standard Intake Target', data: stdFeedGramsData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
-            ]}, 
-            options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Daily Feed Intake' } } } 
-        });
+        if (ctxIntake) {
+            intakeChartInstance = new Chart(ctxIntake, { 
+                type: 'line', 
+                data: { labels: labels, datasets: [
+                    { label: 'Actual Intake (g/bird)', data: actualFeedGramsData, borderColor: '#f59e0b', backgroundColor: '#f59e0b', tension: 0.1, spanGaps: true, pointRadius: 4 },
+                    { label: 'Standard Intake Target', data: stdFeedGramsData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
+                ]}, 
+                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Daily Feed Intake' } } } 
+            });
+        }
 
         if (mortChartInstance) mortChartInstance.destroy();
         const ctxMort = getFreshCanvas('mortChart');
-        mortChartInstance = new Chart(ctxMort, { 
-            type: 'bar', 
-            data: { labels: labels, datasets: [
-                { label: 'Daily Dead Birds', data: mortData, backgroundColor: '#ef4444' }
-            ]}, 
-            options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Daily Mortality' } } } 
-        });
+        if (ctxMort) {
+            mortChartInstance = new Chart(ctxMort, { 
+                type: 'bar', 
+                data: { labels: labels, datasets: [
+                    { label: 'Daily Dead Birds', data: mortData, backgroundColor: '#ef4444' }
+                ]}, 
+                options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Daily Mortality' } } } 
+            });
+        }
     }
 
     // ==========================================
