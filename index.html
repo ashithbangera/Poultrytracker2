@@ -99,10 +99,28 @@
         
         .tight-col { width: 1%; white-space: nowrap; }
 
-        /* Standard Column Highlighting Styles */
-        .std-header { background-color: #e2e8f0; color: #475569; }
-        .std-cell { background-color: #f1f5f9; color: #64748b; font-weight: 600; font-size: 12px; }
-        
+        /* ---- NEW BOXED OUTLINE FOR STANDARD COLUMNS ---- */
+        .std-header { 
+            background-color: #f1f5f9 !important; 
+            color: #334155 !important; 
+            font-weight: 700; 
+            border-top: 2px solid #94a3b8; 
+            border-bottom: 2px solid #94a3b8 !important; 
+        }
+        .std-header-left { border-left: 2px solid #94a3b8 !important; }
+        .std-header-right { border-right: 2px solid #94a3b8 !important; }
+
+        .std-cell { 
+            background-color: #f8fafc; 
+            color: #475569; 
+            font-weight: 700; 
+            font-size: 12px; 
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .std-cell-left { border-left: 2px solid #94a3b8 !important; }
+        .std-cell-right { border-right: 2px solid #94a3b8 !important; }
+        /* ------------------------------------------------ */
+
         input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type="number"] { -moz-appearance: textfield; }
         
@@ -481,10 +499,10 @@
         let totWtH = shedCount > 1 ? `<th class="tight-col">Avg Wt</th>` : '';
         let combinedFcrH = `<th class="tight-col">Act FCR</th>`;
 
-        // Modern Grey Locked Headers
-        let stdFeedH = `<th class="tight-col std-header">Std Fd(g)</th>`;
+        // Modern Grey Locked Headers with Bold Borders
+        let stdFeedH = `<th class="tight-col std-header std-header-left">Std Fd(g)</th>`;
         let stdWtH = `<th class="tight-col std-header">Std Wt(kg)</th>`;
-        let stdFcrH = `<th class="tight-col std-header">Std FCR</th>`;
+        let stdFcrH = `<th class="tight-col std-header std-header-right">Std FCR</th>`;
 
         document.getElementById('dailyHead').innerHTML = `<tr><th class="tight-col">Day</th><th class="tight-col">Date</th>${morH}${totMorH}${feedH}${totFeedH}${wtH}${totWtH}${combinedFcrH}${stdFeedH}${stdWtH}${stdFcrH}<th class="tight-col">Remarks</th></tr>`;
 
@@ -793,10 +811,10 @@
 
         let combinedFcrCell = `<td>${hiddenFcrInputs}${hiddenBatchFcr}<div id="display_fcr_${i}" style="line-height: 1.4; min-height: 24px;">-</div></td>`;
 
-        // Modern Grey Locked Format
-        let stdFeedCell = `<td class="std-cell">${sFd}</td>`;
+        // Modern Boxed Format with Borders
+        let stdFeedCell = `<td class="std-cell std-cell-left">${sFd}</td>`;
         let stdWtCell = `<td class="std-cell">${sWt}</td>`;
-        let stdFcrCell = `<td class="std-cell">${sFcr}</td>`;
+        let stdFcrCell = `<td class="std-cell std-cell-right">${sFcr}</td>`;
         
         tr.innerHTML = `<td><strong>${i}</strong></td><td>${dateInput}</td>${morCells}${totMorCell}${feedCells}${totFeedCell}${wtCells}${totWtCellOutput}${combinedFcrCell}${stdFeedCell}${stdWtCell}${stdFcrCell}<td><input type="text" id="note_${i}" onchange="runSync()"></td>`;
         tbody.appendChild(tr);
@@ -1073,42 +1091,61 @@
     }
 
     // ==========================================
-    // CHART ENGINE WITH INTERPOLATION
+    // CHART ENGINE WITH BULLETPROOF INTERPOLATION
     // ==========================================
     function interpolateArray(arr) {
         let n = arr.length;
         let result = [...arr];
-        let lastValidIdx = -1;
         
+        let validIndices = [];
         for (let i = 0; i < n; i++) {
-            if (result[i] !== null) {
-                if (lastValidIdx !== -1 && i - lastValidIdx > 1) {
-                    let steps = i - lastValidIdx;
-                    let diff = result[i] - result[lastValidIdx];
-                    for (let j = 1; j < steps; j++) {
-                        result[lastValidIdx + j] = result[lastValidIdx] + (diff * (j / steps));
-                    }
+            if (result[i] !== null && !isNaN(result[i])) validIndices.push(i);
+        }
+        
+        if (validIndices.length === 0) return result;
+        
+        // 1. Interpolate internal gaps between valid logged points
+        for (let k = 0; k < validIndices.length - 1; k++) {
+            let idx1 = validIndices[k];
+            let idx2 = validIndices[k+1];
+            if (idx2 - idx1 > 1) {
+                let steps = idx2 - idx1;
+                let diff = result[idx2] - result[idx1];
+                for (let j = 1; j < steps; j++) {
+                    result[idx1 + j] = result[idx1] + (diff * (j / steps));
                 }
-                lastValidIdx = i;
             }
         }
         
-        if (lastValidIdx !== -1 && lastValidIdx > 0 && lastValidIdx < n - 1) {
+        // 2. Extrapolate safely forward ONLY if daily activity exists
+        let lastIdx = validIndices[validIndices.length - 1];
+        if (lastIdx < n - 1 && validIndices.length >= 2) {
             let slope = 0;
             let count = 0;
-            for (let i = lastValidIdx; i >= 1; i--) {
-                if (arr[i] !== null && arr[i-1] !== null) {
-                    slope += (arr[i] - arr[i-1]);
-                    count++;
-                    if (count >= 3) break;
-                }
+            for (let k = validIndices.length - 1; k > 0; k--) {
+                let i2 = validIndices[k];
+                let i1 = validIndices[k-1];
+                slope += (result[i2] - result[i1]) / (i2 - i1);
+                count++;
+                if (count >= 3) break; 
             }
-            if (count > 0) slope = slope / count;
+            let avgSlope = slope / count;
             
-            for (let i = lastValidIdx + 1; i < n; i++) {
-                let mInput = document.getElementById(`m1_${i+1}`);
-                if (mInput && mInput.value !== '') {
-                    result[i] = result[i-1] + slope;
+            for (let i = lastIdx + 1; i < n; i++) {
+                let hasActivity = false;
+                for (let s = 1; s <= shedCount; s++) {
+                    let m = document.getElementById(`m${s}_${i+1}`);
+                    let f = document.getElementById(`f${s}_${i+1}`);
+                    let w = document.getElementById(`wt${s}_${i+1}`);
+                    if ((m && m.value !== '') || (f && f.value !== '') || (w && w.value !== '')) {
+                        hasActivity = true; break;
+                    }
+                }
+                
+                if (hasActivity) {
+                    result[i] = result[i-1] + avgSlope;
+                } else {
+                    break; // Stop instantly to prevent NaN drops
                 }
             }
         }
