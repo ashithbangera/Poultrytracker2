@@ -133,7 +133,7 @@
         
         .tight-col { width: 1%; white-space: nowrap; }
 
-        /* ---- SOFT HIGHLIGHT FOR STANDARD COLUMNS ---- */
+        /* ---- SOFT HIGHLIGHT FOR STANDARD COLUMNS (No harsh borders) ---- */
         .std-header { 
             background-color: var(--std-head) !important; 
             color: var(--text-main) !important; 
@@ -145,7 +145,7 @@
             font-weight: 600; 
             font-size: 12px; 
         }
-        /* ------------------------------------------------ */
+        /* ------------------------------------------------------------------ */
         
         /* Modern Buttons */
         button { padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Inter', sans-serif; transition: all 0.2s ease; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
@@ -411,7 +411,7 @@
         let isDark = document.body.classList.contains('dark-mode');
         localStorage.setItem('poultryDarkMode', isDark);
         applyChartTheme();
-        if (document.getElementById('appContainer').style.display !== 'none') {
+        if (document.getElementById('appContainer').offsetWidth > 0) {
             updateCharts(calcFeed()); 
         }
     }
@@ -489,6 +489,7 @@
         document.getElementById('appContainer').style.display = 'block';
         document.getElementById('displayBatchName').innerText = currentBatch || "N/A";
         
+        // Wait 100ms for screen to render, then fire sync and draw charts safely
         setTimeout(() => { runSync(); }, 100); 
     }
     function backToDashboard() {
@@ -576,7 +577,6 @@
         let totWtH = shedCount > 1 ? `<th class="tight-col">Avg Wt</th>` : '';
         let combinedFcrH = `<th class="tight-col">Act FCR</th>`;
 
-        // Clean Solid Highlight Headers
         let stdFeedH = `<th class="tight-col std-header">Std Fd(g)</th>`;
         let stdWtH = `<th class="tight-col std-header">Std Wt(kg)</th>`;
         let stdFcrH = `<th class="tight-col std-header">Std FCR</th>`;
@@ -760,7 +760,8 @@
         calculateTable(liftingData, feedAgg); 
         calcRemaining(); 
         
-        if (document.getElementById('appContainer').style.display !== 'none') {
+        // ONLY RENDER IF SCREEN IS TRULY VISIBLE (Fixes Chart.js 0x0 canvas crash)
+        if (document.getElementById('appContainer').offsetWidth > 0) {
             updateCharts(feedAgg);
         }
 
@@ -1193,8 +1194,18 @@
     }
 
     // ==========================================
-    // CHART ENGINE - FIXED
+    // CHART ENGINE - FIXED CANVAS REBUILD
     // ==========================================
+    function getFreshCanvas(id) {
+        let oldCanvas = document.getElementById(id);
+        let container = oldCanvas.parentElement;
+        oldCanvas.remove();
+        let newCanvas = document.createElement('canvas');
+        newCanvas.id = id;
+        container.appendChild(newCanvas);
+        return newCanvas.getContext('2d');
+    }
+
     function updateCharts(feedAgg) {
         if (typeof Chart === 'undefined') return; 
         if(!feedAgg) feedAgg = {};
@@ -1237,8 +1248,8 @@
             mortData.push(hasData ? dayMor : null); actualWtData.push(dayActualWt); actualFcrData.push(dayActualFcr); actualFeedGramsData.push(actualGrams);
         }
 
-        const ctxWt = document.getElementById('wtChart').getContext('2d');
         if (wtChartInstance) wtChartInstance.destroy();
+        const ctxWt = getFreshCanvas('wtChart');
         wtChartInstance = new Chart(ctxWt, { 
             type: 'line', 
             data: { labels: labels, datasets: [
@@ -1248,8 +1259,8 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Growth (Weight)' } } } 
         });
 
-        const ctxFcr = document.getElementById('fcrOnlyChart').getContext('2d');
         if (fcrOnlyChartInstance) fcrOnlyChartInstance.destroy();
+        const ctxFcr = getFreshCanvas('fcrOnlyChart');
         fcrOnlyChartInstance = new Chart(ctxFcr, { 
             type: 'line', 
             data: { labels: labels, datasets: [
@@ -1259,8 +1270,8 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Feed Conversion Ratio (FCR)' } } } 
         });
 
-        const ctxIntake = document.getElementById('intakeChart').getContext('2d');
         if (intakeChartInstance) intakeChartInstance.destroy();
+        const ctxIntake = getFreshCanvas('intakeChart');
         intakeChartInstance = new Chart(ctxIntake, { 
             type: 'line', 
             data: { labels: labels, datasets: [
@@ -1270,8 +1281,8 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Daily Feed Intake' } } } 
         });
 
-        const ctxMort = document.getElementById('mortChart').getContext('2d');
         if (mortChartInstance) mortChartInstance.destroy();
+        const ctxMort = getFreshCanvas('mortChart');
         mortChartInstance = new Chart(ctxMort, { 
             type: 'bar', 
             data: { labels: labels, datasets: [
