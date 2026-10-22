@@ -40,7 +40,7 @@
         .login-box { background: #fff; padding: 40px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid var(--card-border); }
         .login-box h2 { color: var(--primary); margin-bottom: 20px; }
         
-        /* Modern Inputs (No harsh borders) */
+        /* Modern Inputs */
         input[type="number"], input[type="text"], input[type="date"], input[type="email"], input[type="password"], select { 
             width: 100%; padding: 8px 6px; border: 1px solid transparent; border-radius: 6px; box-sizing: border-box; text-align: center;
             background-color: var(--input-bg); font-family: 'Inter', sans-serif; font-weight: 500; font-size: 13px; color: #0f172a;
@@ -87,7 +87,7 @@
         details > summary h2 { margin: 0; font-size: inherit; color: inherit; }
 
         /* Modern Tables with Sticky Glass Headers */
-        .table-responsive { max-height: 700px; overflow-y: auto; overflow-x: auto; border-radius: 8px; border: 1px solid #f1f5f9; }
+        .table-responsive { overflow-x: auto; border-radius: 8px; border: 1px solid #f1f5f9; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 8px 4px; text-align: center; border-bottom: 1px solid #f1f5f9; }
         th { 
@@ -98,6 +98,10 @@
         tr:hover { background-color: #f8fafc; }
         
         .tight-col { width: 1%; white-space: nowrap; }
+
+        /* Standard Column Highlighting Styles */
+        .std-header { background-color: #e2e8f0; color: #475569; }
+        .std-cell { background-color: #f1f5f9; color: #64748b; font-weight: 600; font-size: 12px; }
         
         input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type="number"] { -moz-appearance: textfield; }
@@ -109,7 +113,7 @@
         .btn-success { background-color: var(--success); color: white; }
         .btn-danger { background-color: var(--danger); color: white; }
         .btn-outline { background-color: transparent; border: 1px solid #cbd5e1; color: #475569; box-shadow: none; }
-        .btn-outline:hover { background-color: #f1f5f9; border-color: #94a3b8; }
+        .btn-outline:hover { background-color: #f1f5f9; }
         .btn-dark { background-color: #334155; color: white; }
         .btn-large { padding: 14px; font-size: 15px; width: 100%; margin-top: 10px; }
         
@@ -119,7 +123,7 @@
         .save-indicator { font-size: 14px; color: var(--success); font-weight: 600; margin-right: 15px; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-content { background: white; padding: 30px; border-radius: 20px; width: 450px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); border-top: 6px solid var(--accent); }
+        .modal-content { background: white; padding: 30px; border-radius: 20px; width: 450px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); border-top: 6px solid var(--accent); max-height: 90vh; overflow-y: auto; }
         .modal-content h2 { margin-top: 0; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; color: var(--secondary); font-weight: 700; }
         .summary-stat { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed #e2e8f0; font-size: 15px; }
 
@@ -258,8 +262,8 @@
                     </table>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 15px;">
-                    <button class="btn-outline" onclick="addFeedRow()">+ Add Arrival</button>
-                    <button class="btn-outline" onclick="removeFeedRow()">- Remove Last</button>
+                    <button class="btn-outline" style="color: var(--accent); border-color: var(--accent);" onclick="addFeedRow()">+ Add Arrival</button>
+                    <button class="btn-outline" style="color: var(--danger); border-color: var(--danger);" onclick="removeFeedRow()">- Remove Last</button>
                 </div>
             </details>
 
@@ -274,8 +278,8 @@
                     </table>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 15px;">
-                    <button class="btn-outline" onclick="addLiftRow()">+ Add Harvest</button>
-                    <button class="btn-outline" onclick="removeLiftRow()">- Remove Last</button>
+                    <button class="btn-outline" style="color: var(--accent); border-color: var(--accent);" onclick="addLiftRow()">+ Add Harvest</button>
+                    <button class="btn-outline" style="color: var(--danger); border-color: var(--danger);" onclick="removeLiftRow()">- Remove Last</button>
                 </div>
             </details>
             
@@ -297,7 +301,6 @@
                     </div>
                 </div>
             </details>
-            
         </div>
     </div>
 
@@ -345,16 +348,13 @@
     ];
 
     // ==========================================
-    // ROBUST FIREBASE INITIALIZATION 
+    // FIREBASE INITIALIZATION 
     // ==========================================
     const firebaseConfig = {
         apiKey: "AIzaSyB9UXdBlmPi7MTC388W2D4353TqOvr98i8",
         authDomain: "poultry-tracker-181c7.firebaseapp.com",
         databaseURL: "https://poultry-tracker-181c7-default-rtdb.asia-southeast1.firebasedatabase.app/",
-        projectId: "poultry-tracker-181c7",
-        storageBucket: "poultry-tracker-181c7.firebasestorage.app",
-        messagingSenderId: "641582598857",
-        appId: "1:641582598857:web:263050e6cea1f563961b18"
+        projectId: "poultry-tracker-181c7"
     };
 
     let totalDays = 45; 
@@ -401,7 +401,7 @@
         document.getElementById('appContainer').style.display = 'none';
         document.getElementById('landingScreen').style.display = 'block';
     }
-    function resetError() { document.getElementById('authError').innerText = ""; document.getElementById('authError').style.color = "var(--danger)"; }
+    function resetError() { document.getElementById('authError').innerText = ""; }
     
     function login() {
         resetError();
@@ -429,7 +429,7 @@
         firebase.auth().sendPasswordResetEmail(e).then(() => {
             document.getElementById('authError').style.color = "var(--success)";
             document.getElementById('authError').innerText = "Password reset email sent!";
-        }).catch(err => { document.getElementById('authError').innerText = err.message; });
+        }).catch(err => { document.getElementById('authError').style.color = "var(--danger)"; document.getElementById('authError').innerText = err.message; });
     }
     function logout() { firebase.auth().signOut(); localStorage.removeItem('poultryCurrentView'); }
 
@@ -479,12 +479,12 @@
         let totMorH = shedCount > 1 ? `<th class="tight-col">Tot Mor</th>` : '';
         let totFeedH = shedCount > 1 ? `<th class="tight-col">Tot Feed</th>` : '';
         let totWtH = shedCount > 1 ? `<th class="tight-col">Avg Wt</th>` : '';
-        
         let combinedFcrH = `<th class="tight-col">Act FCR</th>`;
 
-        let stdFeedH = `<th class="tight-col" style="background-color: transparent;">Std Fd(g)</th>`;
-        let stdWtH = `<th class="tight-col" style="background-color: transparent;">Std Wt(kg)</th>`;
-        let stdFcrH = `<th class="tight-col" style="background-color: transparent;">Std FCR</th>`;
+        // Modern Grey Locked Headers
+        let stdFeedH = `<th class="tight-col std-header">Std Fd(g)</th>`;
+        let stdWtH = `<th class="tight-col std-header">Std Wt(kg)</th>`;
+        let stdFcrH = `<th class="tight-col std-header">Std FCR</th>`;
 
         document.getElementById('dailyHead').innerHTML = `<tr><th class="tight-col">Day</th><th class="tight-col">Date</th>${morH}${totMorH}${feedH}${totFeedH}${wtH}${totWtH}${combinedFcrH}${stdFeedH}${stdWtH}${stdFcrH}<th class="tight-col">Remarks</th></tr>`;
 
@@ -556,39 +556,20 @@
         let fcr = parseFloat(document.getElementById('estFcr').value);
         let out = document.getElementById('estPrice');
         
-        if (isNaN(wt) || isNaN(fcr) || wt < 0 || fcr < 0) {
-            out.value = "N/A";
-            return;
-        }
+        if (isNaN(wt) || isNaN(fcr) || wt < 0 || fcr < 0) { out.value = "N/A"; return; }
         
         let basePrice = 11.90; 
-        let wtDiffSteps = (wt - 1.40) * 100;
-        let wtBonus = wtDiffSteps * 0.02; 
-        
+        let wtBonus = ((wt - 1.40) * 100) * 0.02; 
         let fcrPenalty = 0;
         let f = fcr;
         
-        if (f > 1.35) {
-            let t1 = Math.min(f, 1.50) - 1.35;
-            fcrPenalty += (t1 * 100) * 0.15;
-        }
-        if (f > 1.50) {
-            let t2 = Math.min(f, 1.55) - 1.50;
-            fcrPenalty += (t2 * 100) * 0.18;
-        }
-        if (f > 1.55) {
-            let t3 = Math.min(f, 1.60) - 1.55;
-            fcrPenalty += (t3 * 100) * 0.19;
-        }
-        if (f > 1.60) {
-            let t4 = Math.min(f, 1.65) - 1.60;
-            fcrPenalty += (t4 * 100) * 0.06;
-        }
+        if (f > 1.35) fcrPenalty += (Math.min(f, 1.50) - 1.35) * 100 * 0.15;
+        if (f > 1.50) fcrPenalty += (Math.min(f, 1.55) - 1.50) * 100 * 0.18;
+        if (f > 1.55) fcrPenalty += (Math.min(f, 1.60) - 1.55) * 100 * 0.19;
+        if (f > 1.60) fcrPenalty += (Math.min(f, 1.65) - 1.60) * 100 * 0.06;
         
         let finalPrice = basePrice + wtBonus - fcrPenalty;
-        
         if (finalPrice < 7.50) finalPrice = 7.50;
-        
         out.value = finalPrice.toFixed(2) + " Rs/kg";
     }
 
@@ -812,9 +793,10 @@
 
         let combinedFcrCell = `<td>${hiddenFcrInputs}${hiddenBatchFcr}<div id="display_fcr_${i}" style="line-height: 1.4; min-height: 24px;">-</div></td>`;
 
-        let stdFeedCell = `<td style="color: #64748b; font-weight: 600; font-size: 11px;">${sFd}</td>`;
-        let stdWtCell = `<td style="color: #64748b; font-weight: 600; font-size: 11px;">${sWt}</td>`;
-        let stdFcrCell = `<td style="color: #64748b; font-weight: 600; font-size: 11px;">${sFcr}</td>`;
+        // Modern Grey Locked Format
+        let stdFeedCell = `<td class="std-cell">${sFd}</td>`;
+        let stdWtCell = `<td class="std-cell">${sWt}</td>`;
+        let stdFcrCell = `<td class="std-cell">${sFcr}</td>`;
         
         tr.innerHTML = `<td><strong>${i}</strong></td><td>${dateInput}</td>${morCells}${totMorCell}${feedCells}${totFeedCell}${wtCells}${totWtCellOutput}${combinedFcrCell}${stdFeedCell}${stdWtCell}${stdFcrCell}<td><input type="text" id="note_${i}" onchange="runSync()"></td>`;
         tbody.appendChild(tr);
@@ -845,12 +827,8 @@
             selectHtml += `<option value="${opt}" ${cleanType===opt?'selected':''}>${opt}</option>`; 
         });
         selectHtml += `</select>`;
-        
         let bagCells = ''; 
-        for(let s=1; s<=shedCount; s++) { 
-            bagCells += `<td><input type="text" class="bag-input shed-${s}" placeholder="B.kg" value="${bags[s-1] || ''}" onchange="runSync()"></td>`; 
-        }
-        
+        for(let s=1; s<=shedCount; s++) { bagCells += `<td><input type="text" class="bag-input shed-${s}" placeholder="B.kg" value="${bags[s-1] || ''}" onchange="runSync()"></td>`; }
         tr.innerHTML = `<td><input type="date" value="${date}" onchange="runSync()"></td><td>${selectHtml}</td>${bagCells}<td><input type="text" readonly class="feed-row-total"></td>`;
         tbody.appendChild(tr); if(!isSyncingFromCloud) runSync();
     }
@@ -871,9 +849,7 @@
         let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
         const rows = document.getElementById('feedBody').querySelectorAll('tr');
         let inventoryS = []; for(let s=1; s<=shedCount; s++) inventoryS[s] = 0;
-        let totalAll = 0;
-        
-        let feedAgg = {}; 
+        let totalAll = 0; let feedAgg = {}; 
         
         for (let j = 0; j < rows.length; j++) {
             let row = rows[j]; 
@@ -884,22 +860,16 @@
             if(date && !feedAgg[date]) feedAgg[date] = { arr: [], ret: [] };
 
             for(let s=1; s<=shedCount; s++) {
-                if(date && feedAgg[date].arr[s] === undefined) {
-                    feedAgg[date].arr[s] = 0;
-                    feedAgg[date].ret[s] = 0;
-                }
-                
+                if(date && feedAgg[date].arr[s] === undefined) { feedAgg[date].arr[s] = 0; feedAgg[date].ret[s] = 0; }
                 let inputEl = row.querySelector(`.bag-input.shed-${s}`);
                 if(!inputEl) continue;
                 let b = parseFeed(inputEl.value, bagWt); 
                 rowTotal += b;
                 
                 if (type && type.includes('Return Feed')) { 
-                    inventoryS[s] -= b; 
-                    if(date) feedAgg[date].ret[s] += b;
+                    inventoryS[s] -= b; if(date) feedAgg[date].ret[s] += b;
                 } else { 
-                    inventoryS[s] += b; 
-                    if(date) feedAgg[date].arr[s] += b;
+                    inventoryS[s] += b; if(date) feedAgg[date].arr[s] += b;
                 } 
             }
             let totalBox = row.querySelector('.feed-row-total');
@@ -907,9 +877,7 @@
         }
         
         for(let s=1; s<=shedCount; s++) { 
-            if(document.getElementById(`feed_tot_s${s}`)) {
-                document.getElementById(`feed_tot_s${s}`).innerText = formatFeedStr(inventoryS[s], bagWt, true); 
-            }
+            if(document.getElementById(`feed_tot_s${s}`)) document.getElementById(`feed_tot_s${s}`).innerText = formatFeedStr(inventoryS[s], bagWt, true); 
             totalAll += inventoryS[s]; 
         }
         let totEl = document.getElementById('feed_tot_all');
@@ -921,14 +889,12 @@
 
     function calcLifting() {
         const rows = document.getElementById('liftBody').querySelectorAll('tr');
-        let agg = {}; 
-        let grandSheds = []; for(let s=1; s<=shedCount; s++) grandSheds[s] = 0;
+        let agg = {}; let grandSheds = []; for(let s=1; s<=shedCount; s++) grandSheds[s] = 0;
         let grandBoxes = 0, grandBirds = 0, grandWt = 0;
 
         for (let j = 0; j < rows.length; j++) {
             let row = rows[j];
             let date = row.cells[0].querySelector('input').value.trim();
-            
             let rowBirds = 0; let shedVals = [];
             for(let s=1; s<=shedCount; s++) {
                 let v = parseInt(row.cells[s].querySelector('input').value) || 0;
@@ -938,7 +904,6 @@
             let totalWt = parseFloat(row.cells[1+shedCount+2].querySelector('input').value) || 0;
             
             grandBoxes += boxes; grandBirds += rowBirds; grandWt += totalWt;
-
             row.cells[1+shedCount+1].querySelector('input').value = rowBirds > 0 ? rowBirds : '';
             row.cells[1+shedCount+3].querySelector('input').value = (rowBirds > 0 && totalWt > 0) ? (totalWt / rowBirds).toFixed(3) : '';
 
@@ -954,21 +919,16 @@
         let elBirds = document.getElementById('lift_tot_birds'); if(elBirds) elBirds.innerText = grandBirds;
         let elWt = document.getElementById('lift_tot_wt'); if(elWt) elWt.innerText = grandWt.toFixed(2);
         let elAvg = document.getElementById('lift_avg_wt'); if(elAvg) elAvg.innerText = (grandBirds > 0 ? (grandWt/grandBirds).toFixed(3) : '0.000');
-
-        document.getElementById('summary_lift_birds').innerText = grandBirds;
-        document.getElementById('summary_lift_wt').innerText = grandWt.toFixed(2);
+        document.getElementById('summary_lift_birds').innerText = grandBirds; document.getElementById('summary_lift_wt').innerText = grandWt.toFixed(2);
         document.getElementById('summary_lift_avg').innerText = (grandBirds > 0 ? (grandWt/grandBirds).toFixed(3) : '0.000');
-
         return agg; 
     }
 
     function calculateTable(liftData, feedAgg) {
-        if(!liftData) liftData = {}; 
-        if(!feedAgg) feedAgg = {}; 
+        if(!liftData) liftData = {}; if(!feedAgg) feedAgg = {}; 
         
         let inits = [], currentS = [], totalMorS = [], consumedFeedS = [], totalHoused = 0;
         let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
-
         let runningArrivals = []; let runningConsumed = [];
         let cumulativeFeedBagsS = []; let cumulativeHarvestedWtS = [];
 
@@ -989,252 +949,199 @@
             }
         }
 
-        let cumulativeFeedBags = 0;
-        let cumulativeHarvestedWt = 0; 
-        let totalDailyMor = 0;
+        let cumulativeFeedBags = 0; let cumulativeHarvestedWt = 0; let totalDailyMor = 0;
 
         for (let i = 1; i <= totalDays; i++) {
             let dayMorTotal = 0, dayFeedTotal = 0, hasData = false, liveStock = 0;
             let dateVal = document.getElementById(`date_${i}`).value.trim();
-            
             let liftedToday = (dateVal && liftData[dateVal]) ? liftData[dateVal] : null;
             let fDataToday = (dateVal && feedAgg[dateVal]) ? feedAgg[dateVal] : {arr:[], ret:[]};
 
-            if (liftedToday) {
-                cumulativeHarvestedWt += liftedToday.totalWt; 
-            }
+            if (liftedToday) cumulativeHarvestedWt += liftedToday.totalWt; 
             
             let harvestAvgWt = (liftedToday && liftedToday.totalBirds > 0) ? liftedToday.totalWt / liftedToday.totalBirds : 0;
-            let totalDailyLiveBiomass = 0;
-            let totalDailyLiveStockWeighed = 0;
-
+            let totalDailyLiveBiomass = 0; let totalDailyLiveStockWeighed = 0;
             let hiddenLiveStockEl = document.getElementById(`hidden_ls_${i}`);
-            if(!hiddenLiveStockEl) {
-                hiddenLiveStockEl = document.createElement('input');
-                hiddenLiveStockEl.type = 'hidden';
-                hiddenLiveStockEl.id = `hidden_ls_${i}`;
-                document.getElementById('dailyBody').appendChild(hiddenLiveStockEl);
-            }
+            if(!hiddenLiveStockEl) { hiddenLiveStockEl = document.createElement('input'); hiddenLiveStockEl.type = 'hidden'; hiddenLiveStockEl.id = `hidden_ls_${i}`; document.getElementById('dailyBody').appendChild(hiddenLiveStockEl); }
 
             for(let s=1; s<=shedCount; s++) {
                 let mInput = document.getElementById(`m${s}_${i}`); let fInput = document.getElementById(`f${s}_${i}`);
                 if(!mInput) continue;
 
-                let m = parseInt(mInput.value) || 0; 
-                let f = parseFeed(fInput.value, bagWt); 
+                let m = parseInt(mInput.value) || 0; let f = parseFeed(fInput.value, bagWt); 
                 let l = (liftedToday && liftedToday.sheds[s]) ? liftedToday.sheds[s] : 0; 
+                if (l > 0) cumulativeHarvestedWtS[s] += (l * harvestAvgWt);
                 
-                if (l > 0) {
-                    cumulativeHarvestedWtS[s] += (l * harvestAvgWt);
-                }
-                
-                let arr = fDataToday.arr[s] || 0;
-                let ret = fDataToday.ret[s] || 0;
-
-                runningArrivals[s] += arr;
-                runningConsumed[s] += f;
+                let arr = fDataToday.arr[s] || 0; let ret = fDataToday.ret[s] || 0;
+                runningArrivals[s] += arr; runningConsumed[s] += f;
                 
                 let netF = f;
-
                 if (ret > 0) {
                     let currentInv = runningArrivals[s] - runningConsumed[s];
                     let stockAbsorb = Math.min(ret, Math.max(0, currentInv));
                     let deductFromConsumed = ret - stockAbsorb;
-                    
-                    runningArrivals[s] -= ret;
-                    runningConsumed[s] -= deductFromConsumed;
-                    netF = f - deductFromConsumed;
+                    runningArrivals[s] -= ret; runningConsumed[s] -= deductFromConsumed; netF = f - deductFromConsumed;
                 }
 
                 if(mInput.value !== '' || fInput.value !== '' || ret > 0) hasData = true;
-
-                totalMorS[s] += m; 
-                consumedFeedS[s] += netF; 
-                dayMorTotal += m; 
-                dayFeedTotal += netF; 
-                
-                currentS[s] -= (m + l); 
-                liveStock += currentS[s];
-
+                totalMorS[s] += m; consumedFeedS[s] += netF; dayMorTotal += m; dayFeedTotal += netF; 
+                currentS[s] -= (m + l); liveStock += currentS[s];
                 cumulativeFeedBagsS[s] += netF;
+
                 let wtS = parseFloat(document.getElementById(`wt${s}_${i}`).value) || 0;
                 let liveBiomassS = currentS[s] * wtS;
                 let totalBiomassS = liveBiomassS + cumulativeHarvestedWtS[s];
                 
-                if (wtS > 0 && currentS[s] > 0) {
-                    totalDailyLiveBiomass += liveBiomassS;
-                    totalDailyLiveStockWeighed += currentS[s];
-                }
+                if (wtS > 0 && currentS[s] > 0) { totalDailyLiveBiomass += liveBiomassS; totalDailyLiveStockWeighed += currentS[s]; }
 
                 let canCalcS = false;
-                if (currentS[s] > 0 && wtS > 0) {
-                    canCalcS = true;
-                } else if (currentS[s] <= 0 && totalBiomassS > 0) {
-                    if (l > 0 || hasData || wtS > 0) canCalcS = true;
-                }
+                if (currentS[s] > 0 && wtS > 0) canCalcS = true;
+                else if (currentS[s] <= 0 && totalBiomassS > 0) { if (l > 0 || hasData || wtS > 0) canCalcS = true; }
 
                 let fcrFieldS = document.getElementById(`fcr${s}_${i}`);
-                if (canCalcS && cumulativeFeedBagsS[s] > 0) {
-                    fcrFieldS.value = ((cumulativeFeedBagsS[s] * bagWt) / totalBiomassS).toFixed(3);
-                } else {
-                    fcrFieldS.value = '';
-                }
+                if (canCalcS && cumulativeFeedBagsS[s] > 0) { fcrFieldS.value = ((cumulativeFeedBagsS[s] * bagWt) / totalBiomassS).toFixed(3); } 
+                else { fcrFieldS.value = ''; }
             }
             
             hiddenLiveStockEl.value = liveStock;
-
             if(document.getElementById(`dtot_${i}`)) { document.getElementById(`dtot_${i}`).value = hasData ? dayMorTotal : ''; }
             if(document.getElementById(`ftot_${i}`)) { document.getElementById(`ftot_${i}`).value = hasData ? formatFeedStr(dayFeedTotal, bagWt, true) : ''; }
             
-            cumulativeFeedBags += dayFeedTotal;
-            totalDailyMor += dayMorTotal;
-
-            let batchWtField = document.getElementById(`wt_${i}`);
-            let batchFcrField = document.getElementById(`fcr_${i}`);
-            
+            cumulativeFeedBags += dayFeedTotal; totalDailyMor += dayMorTotal;
+            let batchWtField = document.getElementById(`wt_${i}`); let batchFcrField = document.getElementById(`fcr_${i}`);
             let batchWt = 0;
+            
             if (totalDailyLiveStockWeighed > 0) {
                 batchWt = totalDailyLiveBiomass / totalDailyLiveStockWeighed;
                 if (batchWtField) batchWtField.value = batchWt.toFixed(3);
-            } else {
-                if (batchWtField) batchWtField.value = '';
-            }
+            } else { if (batchWtField) batchWtField.value = ''; }
 
             let estimatedTotalLiveBiomass = liveStock * batchWt;
             let totalBatchBiomass = estimatedTotalLiveBiomass + cumulativeHarvestedWt;
             
             let canCalcBatch = false;
-            if (liveStock > 0 && batchWt > 0) {
-                canCalcBatch = true;
-            } else if (liveStock <= 0 && totalBatchBiomass > 0) {
-                if (liftedToday || hasData || batchWt > 0) canCalcBatch = true;
-            }
+            if (liveStock > 0 && batchWt > 0) canCalcBatch = true;
+            else if (liveStock <= 0 && totalBatchBiomass > 0) { if (liftedToday || hasData || batchWt > 0) canCalcBatch = true; }
             
-            if (canCalcBatch && cumulativeFeedBags > 0 && batchFcrField) {
-                batchFcrField.value = ((cumulativeFeedBags * bagWt) / totalBatchBiomass).toFixed(3);
-            } else {
-                if (batchFcrField) batchFcrField.value = '';
-            }
+            if (canCalcBatch && cumulativeFeedBags > 0 && batchFcrField) { batchFcrField.value = ((cumulativeFeedBags * bagWt) / totalBatchBiomass).toFixed(3); } 
+            else { if (batchFcrField) batchFcrField.value = ''; }
             
-            // DYNAMIC COMBINED FCR WITH SMART COLOR HIGHLIGHTING
             let dispDiv = document.getElementById(`display_fcr_${i}`);
             if (dispDiv) {
                 let stdFcrNum = (i <= 42 && STANDARD_DATA[i].fcr !== '-') ? parseFloat(STANDARD_DATA[i].fcr) : null;
-                
                 if (shedCount > 1) {
-                    let sFcrs = [];
-                    let hasShedFcr = false;
+                    let sFcrs = []; let hasShedFcr = false;
                     for(let s=1; s<=shedCount; s++) {
                         let val = document.getElementById(`fcr${s}_${i}`).value;
-                        if (val) hasShedFcr = true;
-                        sFcrs.push(val ? val : '-');
+                        if (val) hasShedFcr = true; sFcrs.push(val ? val : '-');
                     }
                     let bVal = document.getElementById(`fcr_${i}`).value;
-                    
                     if (!hasShedFcr && !bVal) {
                         dispDiv.innerHTML = '-';
                     } else {
-                        let actFcrNum = parseFloat(bVal);
-                        let colorStr = "var(--primary)"; 
+                        let actFcrNum = parseFloat(bVal); let colorStr = "var(--primary)"; 
                         if (!isNaN(stdFcrNum) && !isNaN(actFcrNum)) {
-                            if (actFcrNum < stdFcrNum) colorStr = "var(--success)"; // Green if better
-                            else if (actFcrNum > stdFcrNum) colorStr = "var(--danger)"; // Red if worse
+                            if (actFcrNum < stdFcrNum) colorStr = "var(--success)"; else if (actFcrNum > stdFcrNum) colorStr = "var(--danger)"; 
                         }
                         dispDiv.innerHTML = `<div style="color: #64748b; font-size: 10px; margin-bottom: 2px; white-space: nowrap;">${sFcrs.join(' / ')}</div><strong style="font-size: 14px; color: ${colorStr};">${bVal ? bVal : '-'}</strong>`;
                     }
                 } else {
-                    let val = document.getElementById(`fcr1_${i}`).value;
-                    let actFcrNum = parseFloat(val);
-                    let colorStr = "var(--primary)";
+                    let val = document.getElementById(`fcr1_${i}`).value; let actFcrNum = parseFloat(val); let colorStr = "var(--primary)";
                     if (!isNaN(stdFcrNum) && !isNaN(actFcrNum)) {
-                        if (actFcrNum < stdFcrNum) colorStr = "var(--success)"; 
-                        else if (actFcrNum > stdFcrNum) colorStr = "var(--danger)"; 
+                        if (actFcrNum < stdFcrNum) colorStr = "var(--success)"; else if (actFcrNum > stdFcrNum) colorStr = "var(--danger)"; 
                     }
                     dispDiv.innerHTML = val ? `<strong style="font-size: 14px; color: ${colorStr};">${val}</strong>` : '-';
                 }
             }
         }
 
-        let totalConsumedBags = 0, totalInStock = 0;
-        let indivStockStr = "";
-        
+        let totalConsumedBags = 0, totalInStock = 0; let indivStockStr = "";
         for(let s=1; s<=shedCount; s++) {
             if(document.getElementById(`tot_m${s}`)) document.getElementById(`tot_m${s}`).innerText = totalMorS[s];
             if(document.getElementById(`tot_s${s}_stock`)) document.getElementById(`tot_s${s}_stock`).innerText = currentS[s];
             if(document.getElementById(`tot_f${s}`)) document.getElementById(`tot_f${s}`).innerText = formatFeedStr(consumedFeedS[s], bagWt, true);
             totalConsumedBags += consumedFeedS[s]; totalInStock += currentS[s];
-            if (shedCount > 1) {
-                indivStockStr += `S${s}: ${currentS[s]} | `;
+            if (shedCount > 1) { indivStockStr += `S${s}: ${currentS[s]} | `; }
+        }
+        
+        let elIndivStock = document.getElementById('tot_in_stock_individual'); if (elIndivStock) elIndivStock.innerText = indivStockStr;
+        let mortPercent = totalHoused > 0 ? ((totalDailyMor / totalHoused) * 100).toFixed(2) : '0.00';
+        document.getElementById('tot_mortality_footer').innerText = totalDailyMor; document.getElementById('tot_mort_percent').innerText = mortPercent;
+        document.getElementById('tot_daily').innerText = totalDailyMor; document.getElementById('tot_housed').innerText = totalHoused; document.getElementById('tot_in_stock').innerText = totalInStock;
+        document.getElementById('tot_feed_daily').innerText = formatFeedStr(totalConsumedBags, bagWt, true); 
+        let consEl = document.getElementById('tot_feed_consumed'); consEl.innerText = formatFeedStr(totalConsumedBags, bagWt, false); consEl.dataset.val = totalConsumedBags; 
+    }
+
+    // ==========================================
+    // CHART ENGINE WITH INTERPOLATION
+    // ==========================================
+    function interpolateArray(arr) {
+        let n = arr.length;
+        let result = [...arr];
+        let lastValidIdx = -1;
+        
+        for (let i = 0; i < n; i++) {
+            if (result[i] !== null) {
+                if (lastValidIdx !== -1 && i - lastValidIdx > 1) {
+                    let steps = i - lastValidIdx;
+                    let diff = result[i] - result[lastValidIdx];
+                    for (let j = 1; j < steps; j++) {
+                        result[lastValidIdx + j] = result[lastValidIdx] + (diff * (j / steps));
+                    }
+                }
+                lastValidIdx = i;
             }
         }
         
-        let elIndivStock = document.getElementById('tot_in_stock_individual');
-        if (elIndivStock) elIndivStock.innerText = indivStockStr;
-        
-        let mortPercent = totalHoused > 0 ? ((totalDailyMor / totalHoused) * 100).toFixed(2) : '0.00';
-        document.getElementById('tot_mortality_footer').innerText = totalDailyMor;
-        document.getElementById('tot_mort_percent').innerText = mortPercent;
-        
-        document.getElementById('tot_daily').innerText = totalDailyMor; document.getElementById('tot_housed').innerText = totalHoused; document.getElementById('tot_in_stock').innerText = totalInStock;
-        
-        document.getElementById('tot_feed_daily').innerText = formatFeedStr(totalConsumedBags, bagWt, true); 
-        
-        let consEl = document.getElementById('tot_feed_consumed');
-        consEl.innerText = formatFeedStr(totalConsumedBags, bagWt, false); 
-        consEl.dataset.val = totalConsumedBags; 
+        if (lastValidIdx !== -1 && lastValidIdx > 0 && lastValidIdx < n - 1) {
+            let slope = 0;
+            let count = 0;
+            for (let i = lastValidIdx; i >= 1; i--) {
+                if (arr[i] !== null && arr[i-1] !== null) {
+                    slope += (arr[i] - arr[i-1]);
+                    count++;
+                    if (count >= 3) break;
+                }
+            }
+            if (count > 0) slope = slope / count;
+            
+            for (let i = lastValidIdx + 1; i < n; i++) {
+                let mInput = document.getElementById(`m1_${i+1}`);
+                if (mInput && mInput.value !== '') {
+                    result[i] = result[i-1] + slope;
+                }
+            }
+        }
+        return result;
     }
 
-    function calcRemaining() {
-        let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
-        let totalArrivals = parseFloat(document.getElementById('feed_tot_all').dataset.val) || 0;
-        let totalConsumed = parseFloat(document.getElementById('tot_feed_consumed').dataset.val) || 0;
-        
-        let remainingBags = totalArrivals - totalConsumed;
-        
-        let elRem = document.getElementById('tot_feed_remaining');
-        if (elRem) elRem.innerText = formatFeedStr(remainingBags, bagWt, false);
-    }
-
-    // ==========================================
-    // CHART.JS ENGINE
-    // ==========================================
     function updateCharts(feedAgg) {
         if (typeof Chart === 'undefined') return; 
-        
         if(!feedAgg) feedAgg = {};
+        
         const labels = [], mortData = [];
         const actualWtData = [], stdWtData = [], actualFcrData = [], stdFcrData = [];
         const actualFeedGramsData = [], stdFeedGramsData = [];
-        
         let bagWt = parseFloat(document.getElementById('bagWt').value) || 50;
 
         for (let i = 1; i <= totalDays; i++) {
             labels.push("Day " + i);
-            
             if(!document.getElementById('m1_' + i)) { 
-                mortData.push(null); actualWtData.push(null); stdWtData.push(null); 
-                actualFcrData.push(null); stdFcrData.push(null); 
-                actualFeedGramsData.push(null); stdFeedGramsData.push(null);
-                continue; 
+                mortData.push(null); actualWtData.push(null); stdWtData.push(null); actualFcrData.push(null); stdFcrData.push(null); actualFeedGramsData.push(null); stdFeedGramsData.push(null); continue; 
             }
             
             let std = (i <= 42) ? STANDARD_DATA[i] : { f: '-', w: '-', fcr: '-' };
-            stdWtData.push(std.w !== '-' ? std.w : null);
-            stdFcrData.push(std.fcr !== '-' ? std.fcr : null);
-            stdFeedGramsData.push(std.f !== '-' ? std.f : null);
+            stdWtData.push(std.w !== '-' ? std.w : null); stdFcrData.push(std.fcr !== '-' ? std.fcr : null); stdFeedGramsData.push(std.f !== '-' ? std.f : null);
 
             let dateVal = document.getElementById(`date_${i}`).value.trim();
             let fDataToday = (dateVal && feedAgg[dateVal]) ? feedAgg[dateVal] : {arr:[], ret:[]};
             let dayMor = 0, dayFeedBags = 0, hasData = false;
             
             for(let s=1; s<=shedCount; s++) {
-                let mInput = document.getElementById(`m${s}_${i}`); 
-                let fInput = document.getElementById(`f${s}_${i}`);
+                let mInput = document.getElementById(`m${s}_${i}`); let fInput = document.getElementById(`f${s}_${i}`);
                 let ret = fDataToday.ret[s] || 0;
-                
                 if(mInput && fInput && (mInput.value !== '' || fInput.value !== '' || ret > 0)) hasData = true;
-                dayMor += parseInt(mInput ? mInput.value : 0) || 0; 
-                dayFeedBags += parseFeed(fInput ? fInput.value : '', bagWt) - ret;
+                dayMor += parseInt(mInput ? mInput.value : 0) || 0; dayFeedBags += parseFeed(fInput ? fInput.value : '', bagWt) - ret;
             }
             
             let wtInput = document.getElementById(`wt_${i}`) || document.getElementById(`wt1_${i}`);
@@ -1243,25 +1150,22 @@
             
             let dayActualWt = (wtInput && wtInput.value !== '') ? parseFloat(wtInput.value) : null;
             let dayActualFcr = (fcrInput && fcrInput.value !== '') ? parseFloat(fcrInput.value) : null;
-            
             let liveStock = (lsInput && lsInput.value) ? parseInt(lsInput.value) : 0;
             let actualGrams = null;
-            if (hasData && dayFeedBags > 0 && liveStock > 0) {
-                actualGrams = ((dayFeedBags * bagWt) * 1000) / liveStock;
-            }
+            if (hasData && dayFeedBags > 0 && liveStock > 0) { actualGrams = ((dayFeedBags * bagWt) * 1000) / liveStock; }
 
-            mortData.push(hasData ? dayMor : null); 
-            actualWtData.push(dayActualWt);
-            actualFcrData.push(dayActualFcr);
-            actualFeedGramsData.push(actualGrams);
+            mortData.push(hasData ? dayMor : null); actualWtData.push(dayActualWt); actualFcrData.push(dayActualFcr); actualFeedGramsData.push(actualGrams);
         }
+
+        let smoothWtData = interpolateArray(actualWtData);
+        let smoothFcrData = interpolateArray(actualFcrData);
 
         const ctxWt = document.getElementById('wtChart').getContext('2d');
         if (wtChartInstance) wtChartInstance.destroy();
         wtChartInstance = new Chart(ctxWt, { 
             type: 'line', 
             data: { labels: labels, datasets: [
-                { label: 'Actual Avg Wt (kg)', data: actualWtData, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.1, spanGaps: true, pointRadius: 4 },
+                { label: 'Actual Avg Wt (kg)', data: smoothWtData, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.3, pointRadius: 2 },
                 { label: 'Standard Target', data: stdWtData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
             ]}, 
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Growth (Weight)' } } } 
@@ -1272,7 +1176,7 @@
         fcrOnlyChartInstance = new Chart(ctxFcr, { 
             type: 'line', 
             data: { labels: labels, datasets: [
-                { label: 'Actual FCR', data: actualFcrData, borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.1, spanGaps: true, pointRadius: 4 },
+                { label: 'Actual FCR', data: smoothFcrData, borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.3, pointRadius: 2 },
                 { label: 'Standard FCR Target', data: stdFcrData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
             ]}, 
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Feed Conversion Ratio (FCR)' } } } 
@@ -1283,7 +1187,7 @@
         intakeChartInstance = new Chart(ctxIntake, { 
             type: 'line', 
             data: { labels: labels, datasets: [
-                { label: 'Actual Intake (g/bird)', data: actualFeedGramsData, borderColor: '#f59e0b', backgroundColor: '#f59e0b', tension: 0.1, spanGaps: true },
+                { label: 'Actual Intake (g/bird)', data: actualFeedGramsData, borderColor: '#f59e0b', backgroundColor: '#f59e0b', tension: 0.2, spanGaps: true, pointRadius: 2 },
                 { label: 'Standard Intake Target', data: stdFeedGramsData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
             ]}, 
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Daily Feed Intake' } } } 
@@ -1301,99 +1205,58 @@
     }
 
     // ==========================================
-    // END BATCH SUMMARY & EXPORTS
+    // END BATCH SUMMARY 
     // ==========================================
     function endBatchSummary() {
         let tInit = parseInt(document.getElementById('tot_housed').innerText)||0;
         let tMor = parseInt(document.getElementById('tot_mortality_footer').innerText)||0;
         let bagWt = parseFloat(document.getElementById('bagWt').value)||50;
         
-        let liftData = calcLifting();
-        let feedAgg = calcFeed(); 
-        let tLift = parseInt(document.getElementById('summary_lift_birds')?.innerText)||0;
-        
-        let survivingLiveStock = tInit - tMor; 
-        let livability = tInit > 0 ? ((survivingLiveStock / tInit) * 100).toFixed(2) : 0;
-
+        let liftData = calcLifting(); let feedAgg = calcFeed(); let tLift = parseInt(document.getElementById('summary_lift_birds')?.innerText)||0;
+        let survivingLiveStock = tInit - tMor; let livability = tInit > 0 ? ((survivingLiveStock / tInit) * 100).toFixed(2) : 0;
         let runningArrivals = []; let runningConsumed = [];
         for(let s=1; s<=shedCount; s++) { runningArrivals[s]=0; runningConsumed[s]=0; }
         
         let day1Date = document.getElementById('date_1') ? document.getElementById('date_1').value.trim() : '';
-        if (day1Date) {
-            for (let d in feedAgg) {
-                if (d < day1Date) { 
-                    for(let s=1; s<=shedCount; s++) { runningArrivals[s] += (feedAgg[d].arr[s] || 0) - (feedAgg[d].ret[s] || 0); }
-                }
-            }
-        }
+        if (day1Date) { for (let d in feedAgg) { if (d < day1Date) { for(let s=1; s<=shedCount; s++) { runningArrivals[s] += (feedAgg[d].arr[s] || 0) - (feedAgg[d].ret[s] || 0); } } } }
 
-        let lastEventDay = 0;
-        let feedUpToLastEvent = 0;
-        let cumFeed = 0;
-
+        let lastEventDay = 0; let feedUpToLastEvent = 0; let cumFeed = 0;
         for (let i = 1; i <= totalDays; i++) {
-            let dayFeed = 0;
-            let dateVal = document.getElementById(`date_${i}`) ? document.getElementById(`date_${i}`).value.trim() : '';
+            let dayFeed = 0; let dateVal = document.getElementById(`date_${i}`) ? document.getElementById(`date_${i}`).value.trim() : '';
             let fDataToday = (dateVal && feedAgg[dateVal]) ? feedAgg[dateVal] : {arr:[], ret:[]};
             let liftedToday = (dateVal && liftData[dateVal]) ? liftData[dateVal] : null;
 
             for(let s=1; s<=shedCount; s++) {
-                let fInput = document.getElementById(`f${s}_${i}`);
-                let f = fInput ? parseFeed(fInput.value, bagWt) : 0;
-                let arr = fDataToday.arr[s] || 0;
-                let ret = fDataToday.ret[s] || 0;
-
-                runningArrivals[s] += arr;
-                runningConsumed[s] += f;
-
+                let fInput = document.getElementById(`f${s}_${i}`); let f = fInput ? parseFeed(fInput.value, bagWt) : 0;
+                let arr = fDataToday.arr[s] || 0; let ret = fDataToday.ret[s] || 0;
+                runningArrivals[s] += arr; runningConsumed[s] += f;
                 if (ret > 0) {
                     let currentInv = runningArrivals[s] - runningConsumed[s];
                     let stockAbsorb = Math.min(ret, Math.max(0, currentInv));
                     let deductFromConsumed = ret - stockAbsorb;
-                    runningArrivals[s] -= ret;
-                    runningConsumed[s] -= deductFromConsumed;
-                    f -= deductFromConsumed;
+                    runningArrivals[s] -= ret; runningConsumed[s] -= deductFromConsumed; f -= deductFromConsumed;
                 }
                 dayFeed += f;
             }
             cumFeed += dayFeed;
-
-            let wtInput = document.getElementById(`wt_${i}`) || document.getElementById(`wt1_${i}`);
-            let wt = wtInput ? parseFloat(wtInput.value) : 0;
-
-            if (wt > 0 || liftedToday) {
-                lastEventDay = i;
-                feedUpToLastEvent = cumFeed;
-            }
+            let wtInput = document.getElementById(`wt_${i}`) || document.getElementById(`wt1_${i}`); let wt = wtInput ? parseFloat(wtInput.value) : 0;
+            if (wt > 0 || liftedToday) { lastEventDay = i; feedUpToLastEvent = cumFeed; }
         }
 
-        let tFeedKg = feedUpToLastEvent * bagWt;
-        let tLiftWt = parseFloat(document.getElementById('summary_lift_wt').innerText)||0;
-        
-        let latestAvgWt = 0;
-        let totalBiomass = 0;
-        let trueAvgWt = "N/A";
-
+        let tFeedKg = feedUpToLastEvent * bagWt; let tLiftWt = parseFloat(document.getElementById('summary_lift_wt').innerText)||0;
+        let latestAvgWt = 0; let totalBiomass = 0; let trueAvgWt = "N/A";
         let finalLiveStock = tInit - tMor - tLift; 
+
         if (finalLiveStock > 0) {
             let foundWt = 0;
             for (let i = totalDays; i >= 1; i--) {
                 let wField = document.getElementById(`wt_${i}`) || document.getElementById(`wt1_${i}`);
-                if (wField && parseFloat(wField.value) > 0) {
-                    foundWt = parseFloat(wField.value);
-                    break;
-                }
+                if (wField && parseFloat(wField.value) > 0) { foundWt = parseFloat(wField.value); break; }
             }
-            let liveBiomass = finalLiveStock * foundWt;
-            totalBiomass = liveBiomass + tLiftWt;
-        } else {
-            totalBiomass = tLiftWt; 
-        }
+            let liveBiomass = finalLiveStock * foundWt; totalBiomass = liveBiomass + tLiftWt;
+        } else { totalBiomass = tLiftWt; }
 
-        if (survivingLiveStock > 0 && totalBiomass > 0) {
-            trueAvgWt = (totalBiomass / survivingLiveStock).toFixed(3);
-        }
-
+        if (survivingLiveStock > 0 && totalBiomass > 0) { trueAvgWt = (totalBiomass / survivingLiveStock).toFixed(3); }
         let finalFcr = (totalBiomass > 0) ? (tFeedKg / totalBiomass).toFixed(3) : "N/A";
 
         document.getElementById('summaryContent').innerHTML = `
@@ -1402,7 +1265,6 @@
             <div class="summary-stat"><span>Livability</span> <strong style="color: var(--success);">${livability}%</strong></div>
             <div class="summary-stat" style="border-top: 1px solid #e2e8f0; margin-top: 10px; padding-top: 10px;"><span>Total Harvested</span> <strong style="color: var(--secondary);">${tLift} birds</strong></div>
             <div class="summary-stat"><span>Total Lifted Weight</span> <strong style="color: var(--secondary);">${tLiftWt.toFixed(2)} kg</strong></div>
-            
             <div class="summary-stat" style="border-top: 1px solid #e2e8f0; margin-top: 10px; padding-top: 10px;"><span>Feed up to Event (Day ${lastEventDay})</span> <strong style="color: var(--secondary);">${formatFeedStr(feedUpToLastEvent, bagWt, false)}</strong></div>
             <div class="summary-stat"><span>True Batch Avg Wt</span> <strong style="color: var(--secondary);">${trueAvgWt !== "N/A" ? trueAvgWt + " kg" : "N/A"}</strong></div>
             <div class="summary-stat"><span>Calc. Total Biomass</span> <strong style="color: var(--secondary);">${totalBiomass > 0 ? totalBiomass.toFixed(2) + " kg" : "N/A"}</strong></div>
@@ -1415,23 +1277,17 @@
 
     function exportCSV() {
         let csv = "--- DAILY LOG ---\nDay,Date,";
-        for(let s=1; s<=shedCount; s++) csv += `Mor S${s},`; 
-        if (shedCount > 1) csv += "Total Mor,";
-        for(let s=1; s<=shedCount; s++) csv += `Feed S${s},`; 
-        if (shedCount > 1) csv += "Total Feed,";
-        for(let s=1; s<=shedCount; s++) csv += `Wt S${s},`; 
-        if (shedCount > 1) csv += "Avg Wt,";
-        for(let s=1; s<=shedCount; s++) csv += `FCR S${s},`; 
-        if (shedCount > 1) csv += "Batch FCR,";
+        for(let s=1; s<=shedCount; s++) csv += `Mor S${s},`; if (shedCount > 1) csv += "Total Mor,";
+        for(let s=1; s<=shedCount; s++) csv += `Feed S${s},`; if (shedCount > 1) csv += "Total Feed,";
+        for(let s=1; s<=shedCount; s++) csv += `Wt S${s},`; if (shedCount > 1) csv += "Avg Wt,";
+        for(let s=1; s<=shedCount; s++) csv += `FCR S${s},`; if (shedCount > 1) csv += "Batch FCR,";
         csv += "Std Feed(g),Std Wt(kg),Std FCR,Remarks\n";
 
         for (let i = 1; i <= totalDays; i++) {
             if(!document.getElementById('m1_' + i)) continue;
             let dateVal = document.getElementById('date_' + i) ? document.getElementById('date_' + i).value : '';
             if (dateVal) { let p = dateVal.split('-'); if (p.length === 3) dateVal = `${p[2]}/${p[1]}/${p[0]}`; }
-            
             let std = (i <= 42) ? STANDARD_DATA[i] : { f: '', w: '', fcr: '' };
-            
             let row = [i, `"${dateVal}"`];
             for(let s=1; s<=shedCount; s++) row.push(document.getElementById(`m${s}_${i}`).value);
             if (shedCount > 1) row.push(document.getElementById('dtot_' + i).value);
@@ -1442,13 +1298,10 @@
             for(let s=1; s<=shedCount; s++) row.push(document.getElementById(`fcr${s}_${i}`).value);
             if (shedCount > 1) row.push(document.getElementById('fcr_' + i).value);
             
-            row.push(`"${std.f}"`, `"${std.w}"`, `"${std.fcr}"`);
-            row.push(`"${document.getElementById('note_' + i).value}"`);
+            row.push(`"${std.f}"`, `"${std.w}"`, `"${std.fcr}"`, `"${document.getElementById('note_' + i).value}"`);
             csv += row.join(",") + "\n";
         }
-
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `${currentBatch || 'Farm'}_Export.csv`; a.click();
+        const blob = new Blob([csv], { type: 'text/csv' }); const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `${currentBatch || 'Farm'}_Export.csv`; a.click();
     }
 
     function downloadBackup() { const blob = new Blob([JSON.stringify(buildDataObject(), null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = window.URL.createObjectURL(blob); a.download = `${currentBatch || 'Farm'}_Backup.json`; a.click(); }
