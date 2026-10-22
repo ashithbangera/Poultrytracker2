@@ -99,7 +99,7 @@
         
         .tight-col { width: 1%; white-space: nowrap; }
 
-        /* ---- NEW BOXED OUTLINE FOR STANDARD COLUMNS ---- */
+        /* ---- BOXED OUTLINE FOR STANDARD COLUMNS ---- */
         .std-header { 
             background-color: #f1f5f9 !important; 
             color: #334155 !important; 
@@ -499,7 +499,7 @@
         let totWtH = shedCount > 1 ? `<th class="tight-col">Avg Wt</th>` : '';
         let combinedFcrH = `<th class="tight-col">Act FCR</th>`;
 
-        // Modern Grey Locked Headers with Bold Borders
+        // Boxed Headers
         let stdFeedH = `<th class="tight-col std-header std-header-left">Std Fd(g)</th>`;
         let stdWtH = `<th class="tight-col std-header">Std Wt(kg)</th>`;
         let stdFcrH = `<th class="tight-col std-header std-header-right">Std FCR</th>`;
@@ -599,7 +599,7 @@
         generateDailyTable(45);
         document.getElementById('feedBody').innerHTML = ''; addFeedRow();
         document.getElementById('liftBody').innerHTML = ''; addLiftRow();
-        runSync(); // Forces charts to initialize immediately on startup!
+        runSync();
     };
 
     function loadUserBatches(uid) {
@@ -675,13 +675,12 @@
         saveDataToCloud();
     }
 
-    // FIXED: Charts now calculate and draw unconditionally, even if the user goes completely offline.
     function runSync() {
         let feedAgg = calcFeed(); 
         let liftingData = calcLifting(); 
         calculateTable(liftingData, feedAgg); 
         calcRemaining(); 
-        updateCharts(feedAgg); // Charts update instantly!
+        updateCharts(feedAgg);
 
         if (isSyncingFromCloud || !cloudRef) return; 
         
@@ -809,7 +808,7 @@
 
         let combinedFcrCell = `<td>${hiddenFcrInputs}${hiddenBatchFcr}<div id="display_fcr_${i}" style="line-height: 1.4; min-height: 24px;">-</div></td>`;
 
-        // Modern Boxed Format with Borders
+        // Modern Boxed Format
         let stdFeedCell = `<td class="std-cell std-cell-left">${sFd}</td>`;
         let stdWtCell = `<td class="std-cell">${sWt}</td>`;
         let stdFcrCell = `<td class="std-cell std-cell-right">${sFcr}</td>`;
@@ -1089,74 +1088,8 @@
     }
 
     // ==========================================
-    // CHART ENGINE WITH BULLETPROOF INTERPOLATION
+    // CHART ENGINE - FIXED (RAW DATA ONLY)
     // ==========================================
-    function interpolateArray(arr) {
-        try {
-            let n = arr.length;
-            let result = [...arr];
-            
-            let validIndices = [];
-            for (let i = 0; i < n; i++) {
-                if (result[i] !== null && !isNaN(result[i])) validIndices.push(i);
-            }
-            
-            if (validIndices.length === 0) return result;
-            
-            // 1. Interpolate internal gaps between valid logged points
-            for (let k = 0; k < validIndices.length - 1; k++) {
-                let idx1 = validIndices[k];
-                let idx2 = validIndices[k+1];
-                if (idx2 - idx1 > 1) {
-                    let steps = idx2 - idx1;
-                    let diff = result[idx2] - result[idx1];
-                    for (let j = 1; j < steps; j++) {
-                        result[idx1 + j] = result[idx1] + (diff * (j / steps));
-                    }
-                }
-            }
-            
-            // 2. Extrapolate safely forward ONLY if daily activity exists
-            let lastIdx = validIndices[validIndices.length - 1];
-            if (lastIdx < n - 1 && validIndices.length >= 2) {
-                let slope = 0;
-                let count = 0;
-                for (let k = validIndices.length - 1; k > 0; k--) {
-                    let i2 = validIndices[k];
-                    let i1 = validIndices[k-1];
-                    let deltaX = i2 - i1;
-                    if (deltaX > 0) {
-                        slope += (result[i2] - result[i1]) / deltaX;
-                        count++;
-                        if (count >= 3) break; 
-                    }
-                }
-                let avgSlope = count > 0 ? (slope / count) : 0;
-                
-                for (let i = lastIdx + 1; i < n; i++) {
-                    let hasActivity = false;
-                    for (let s = 1; s <= shedCount; s++) {
-                        let m = document.getElementById(`m${s}_${i+1}`);
-                        let f = document.getElementById(`f${s}_${i+1}`);
-                        let w = document.getElementById(`wt${s}_${i+1}`);
-                        if ((m && m.value !== '') || (f && f.value !== '') || (w && w.value !== '')) {
-                            hasActivity = true; break;
-                        }
-                    }
-                    if (hasActivity) {
-                        result[i] = result[i-1] + avgSlope;
-                    } else {
-                        break; // Stop instantly to prevent NaN crashes
-                    }
-                }
-            }
-            return result;
-        } catch (e) {
-            console.error("Interpolation Error:", e);
-            return arr; 
-        }
-    }
-
     function updateCharts(feedAgg) {
         if (typeof Chart === 'undefined') return; 
         if(!feedAgg) feedAgg = {};
@@ -1199,15 +1132,12 @@
             mortData.push(hasData ? dayMor : null); actualWtData.push(dayActualWt); actualFcrData.push(dayActualFcr); actualFeedGramsData.push(actualGrams);
         }
 
-        let smoothWtData = interpolateArray(actualWtData);
-        let smoothFcrData = interpolateArray(actualFcrData);
-
         const ctxWt = document.getElementById('wtChart').getContext('2d');
         if (wtChartInstance) wtChartInstance.destroy();
         wtChartInstance = new Chart(ctxWt, { 
             type: 'line', 
             data: { labels: labels, datasets: [
-                { label: 'Actual Avg Wt (kg)', data: smoothWtData, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.3, pointRadius: 3, spanGaps: true },
+                { label: 'Actual Avg Wt (kg)', data: actualWtData, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.1, pointRadius: 4, spanGaps: true },
                 { label: 'Standard Target', data: stdWtData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
             ]}, 
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Growth (Weight)' } } } 
@@ -1218,7 +1148,7 @@
         fcrOnlyChartInstance = new Chart(ctxFcr, { 
             type: 'line', 
             data: { labels: labels, datasets: [
-                { label: 'Actual FCR', data: smoothFcrData, borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.3, pointRadius: 3, spanGaps: true },
+                { label: 'Actual FCR', data: actualFcrData, borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.1, pointRadius: 4, spanGaps: true },
                 { label: 'Standard FCR Target', data: stdFcrData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
             ]}, 
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Feed Conversion Ratio (FCR)' } } } 
@@ -1229,7 +1159,7 @@
         intakeChartInstance = new Chart(ctxIntake, { 
             type: 'line', 
             data: { labels: labels, datasets: [
-                { label: 'Actual Intake (g/bird)', data: actualFeedGramsData, borderColor: '#f59e0b', backgroundColor: '#f59e0b', tension: 0.2, spanGaps: true, pointRadius: 2 },
+                { label: 'Actual Intake (g/bird)', data: actualFeedGramsData, borderColor: '#f59e0b', backgroundColor: '#f59e0b', tension: 0.1, spanGaps: true, pointRadius: 4 },
                 { label: 'Standard Intake Target', data: stdFeedGramsData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
             ]}, 
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Daily Feed Intake' } } } 
