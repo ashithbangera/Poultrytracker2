@@ -86,7 +86,7 @@
         .input-group label { display: block; font-weight: 600; margin-bottom: 6px; color: var(--text-muted); font-size: 13px; }
 
         /* Sizing for dense tables */
-        #dailyBody input[type="date"], #feedBody input[type="date"], #liftBody input[type="date"] { width: 115px !important; min-width: 115px !important; }
+        #dailyBody input[type="date"], #feedBody input[type="date"], #liftBody input[type="date"], #beddingBody input[type="date"] { width: 115px !important; min-width: 115px !important; }
         #feedHead th, #liftHead th, #dailyHead th { white-space: nowrap; padding: 10px 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
         #feedBody select { width: 100px !important; min-width: 100px !important; }
         #dailyBody input[type="text"], #dailyBody input[readonly], #dailyBody input[type="number"],
@@ -316,6 +316,27 @@
                 </div>
             </details>
 
+            <!-- Bedding Material Section -->
+            <details class="section" style="padding-bottom: 10px;" open>
+                <summary><h2>🪵 Bedding Material</h2></summary>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="tight-col" style="color: var(--text-muted); font-size: 12px; text-transform: uppercase;">Order Date</th>
+                                <th style="color: var(--text-muted); font-size: 12px; text-transform: uppercase;">Material / Qty</th>
+                                <th class="tight-col" style="color: var(--text-muted); font-size: 12px; text-transform: uppercase;">Arrived?</th>
+                            </tr>
+                        </thead>
+                        <tbody id="beddingBody"></tbody>
+                    </table>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button class="btn-outline" style="color: var(--accent); border-color: var(--accent);" onclick="addBeddingRow()">+ Add Order</button>
+                    <button class="btn-outline" style="color: var(--danger); border-color: var(--danger);" onclick="removeBeddingRow()">- Remove Last</button>
+                </div>
+            </details>
+
             <!-- Lifting Section -->
             <details class="section" style="padding-bottom: 10px;" open>
                 <summary><h2>🚚 Chicken Lifting (Harvest)</h2></summary>
@@ -391,7 +412,7 @@
         localStorage.setItem('poultryDarkMode', isDark);
         applyChartTheme();
         if (document.getElementById('appContainer').style.display !== 'none') {
-            updateCharts(calcFeed()); // Redraw charts to update colors
+            updateCharts(calcFeed()); 
         }
     }
 
@@ -468,7 +489,6 @@
         document.getElementById('appContainer').style.display = 'block';
         document.getElementById('displayBatchName').innerText = currentBatch || "N/A";
         
-        // Wait 100ms for display:block to fully render before drawing charts (Fixes Chart.js crash!)
         setTimeout(() => { runSync(); }, 100); 
     }
     function backToDashboard() {
@@ -656,6 +676,7 @@
         renderDynamicStructure();
         generateDailyTable(45);
         document.getElementById('feedBody').innerHTML = ''; addFeedRow();
+        document.getElementById('beddingBody').innerHTML = ''; addBeddingRow();
         document.getElementById('liftBody').innerHTML = ''; addLiftRow();
     };
 
@@ -694,6 +715,7 @@
         totalDays = 45; shedCount = 2; document.getElementById('shedCountSelect').value = "2";
         renderDynamicStructure(); generateDailyTable(45);
         document.getElementById('feedBody').innerHTML = ''; addFeedRow();
+        document.getElementById('beddingBody').innerHTML = ''; addBeddingRow();
         document.getElementById('liftBody').innerHTML = ''; addLiftRow();
         
         let blankData = buildDataObject(); let updates = {};
@@ -738,7 +760,6 @@
         calculateTable(liftingData, feedAgg); 
         calcRemaining(); 
         
-        // ONLY RENDER CHARTS IF SCREEN IS VISIBLE TO PREVENT CRASH
         if (document.getElementById('appContainer').style.display !== 'none') {
             updateCharts(feedAgg);
         }
@@ -751,7 +772,7 @@
     }
 
     function buildDataObject() {
-        let data = { settings: { shedCount: shedCount, bagWt: document.getElementById('bagWt').value, days: totalDays }, daily: [], feed: [], lift: [] };
+        let data = { settings: { shedCount: shedCount, bagWt: document.getElementById('bagWt').value, days: totalDays }, daily: [], feed: [], lift: [], bedding: [] };
         for(let s=1; s<=shedCount; s++) { data.settings[`initShed${s}`] = document.getElementById(`initShed${s}`) ? document.getElementById(`initShed${s}`).value : ''; }
         for(let i=1; i<=totalDays; i++) {
             if(!document.getElementById('m1_' + i)) continue;
@@ -770,6 +791,18 @@
             for(let s=1; s<=shedCount; s++) { rowObj[`b${s}`] = row.querySelector(`.bag-input.shed-${s}`).value; }
             data.feed.push(rowObj);
         }
+        
+        let beddingRows = document.querySelectorAll('#beddingBody tr');
+        for (let m = 0; m < beddingRows.length; m++) {
+            let row = beddingRows[m];
+            let rowObj = {
+                date: row.cells[0].querySelector('input').value,
+                details: row.cells[1].querySelector('input').value,
+                arrived: row.cells[2].querySelector('input').checked
+            };
+            data.bedding.push(rowObj);
+        }
+
         let liftRows = document.querySelectorAll('#liftBody tr');
         for (let k = 0; k < liftRows.length; k++) {
             let row = liftRows[k];
@@ -819,6 +852,11 @@
             });
         } else { addFeedRow(); }
 
+        document.getElementById('beddingBody').innerHTML = '';
+        if (data.bedding && data.bedding.length > 0) {
+            data.bedding.forEach(function(b) { addBeddingRow(b.date, b.details, b.arrived); });
+        } else { addBeddingRow(); }
+
         document.getElementById('liftBody').innerHTML = '';
         if (data.lift && data.lift.length > 0) {
             data.lift.forEach(function(l) { 
@@ -862,7 +900,6 @@
 
         let combinedFcrCell = `<td>${hiddenFcrInputs}${hiddenBatchFcr}<div id="display_fcr_${i}" style="line-height: 1.4; min-height: 24px;">-</div></td>`;
 
-        // SOLID DARK BACKGROUND FOR STANDARD METRICS
         let stdFeedCell = `<td class="std-cell">${sFd}</td>`;
         let stdWtCell = `<td class="std-cell">${sWt}</td>`;
         let stdFcrCell = `<td class="std-cell">${sFcr}</td>`;
@@ -902,6 +939,20 @@
         tbody.appendChild(tr); if(!isSyncingFromCloud) runSync();
     }
     function removeFeedRow() { const tb = document.getElementById('feedBody'); if(tb.lastChild) { tb.removeChild(tb.lastChild); runSync(); } }
+
+    function addBeddingRow(date='', details='', arrived=false) {
+        const tbody = document.getElementById('beddingBody');
+        const tr = document.createElement('tr');
+        let checkedHtml = arrived ? 'checked' : '';
+        tr.innerHTML = `
+            <td><input type="date" value="${date}" onchange="runSync()"></td>
+            <td><input type="text" placeholder="e.g. 2 Loads Groundnut Shell" value="${details}" onchange="runSync()"></td>
+            <td><input type="checkbox" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--success);" ${checkedHtml} onchange="runSync()"></td>
+        `;
+        tbody.appendChild(tr);
+        if(!isSyncingFromCloud) runSync();
+    }
+    function removeBeddingRow() { const tb = document.getElementById('beddingBody'); if(tb.lastChild) { tb.removeChild(tb.lastChild); runSync(); } }
 
     function addLiftRow(date='', sheds=[], boxes='', tWt='') {
         const tbody = document.getElementById('liftBody'); const tr = document.createElement('tr');
@@ -1142,7 +1193,7 @@
     }
 
     // ==========================================
-    // CHART ENGINE - BULLETPROOF RAW DATA ONLY
+    // CHART ENGINE - FIXED
     // ==========================================
     function updateCharts(feedAgg) {
         if (typeof Chart === 'undefined') return; 
