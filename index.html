@@ -87,7 +87,7 @@
         details > summary h2 { margin: 0; font-size: inherit; color: inherit; }
 
         /* Modern Tables with Sticky Glass Headers */
-        .table-responsive { max-height: 700px; overflow-y: auto; overflow-x: auto; border-radius: 8px; border: 1px solid #f1f5f9; }
+        .table-responsive { overflow-x: auto; border-radius: 8px; border: 1px solid #f1f5f9; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 8px 4px; text-align: center; border-bottom: 1px solid #f1f5f9; }
         th { 
@@ -99,10 +99,28 @@
         
         .tight-col { width: 1%; white-space: nowrap; }
 
-        /* Standard Column Highlighting Styles */
-        .std-header { background-color: #e2e8f0; color: #475569; }
-        .std-cell { background-color: #f1f5f9; color: #64748b; font-weight: 600; font-size: 12px; }
-        
+        /* ---- BOXED OUTLINE FOR STANDARD COLUMNS ---- */
+        .std-header { 
+            background-color: #f1f5f9 !important; 
+            color: #334155 !important; 
+            font-weight: 700; 
+            border-top: 2px solid #94a3b8; 
+            border-bottom: 2px solid #94a3b8 !important; 
+        }
+        .std-header-left { border-left: 2px solid #94a3b8 !important; }
+        .std-header-right { border-right: 2px solid #94a3b8 !important; }
+
+        .std-cell { 
+            background-color: #f8fafc; 
+            color: #475569; 
+            font-weight: 700; 
+            font-size: 12px; 
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .std-cell-left { border-left: 2px solid #94a3b8 !important; }
+        .std-cell-right { border-right: 2px solid #94a3b8 !important; }
+        /* ------------------------------------------------ */
+
         input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type="number"] { -moz-appearance: textfield; }
         
@@ -481,10 +499,10 @@
         let totWtH = shedCount > 1 ? `<th class="tight-col">Avg Wt</th>` : '';
         let combinedFcrH = `<th class="tight-col">Act FCR</th>`;
 
-        // Modern Grey Locked Headers
-        let stdFeedH = `<th class="tight-col std-header">Std Fd(g)</th>`;
+        // Boxed Headers
+        let stdFeedH = `<th class="tight-col std-header std-header-left">Std Fd(g)</th>`;
         let stdWtH = `<th class="tight-col std-header">Std Wt(kg)</th>`;
-        let stdFcrH = `<th class="tight-col std-header">Std FCR</th>`;
+        let stdFcrH = `<th class="tight-col std-header std-header-right">Std FCR</th>`;
 
         document.getElementById('dailyHead').innerHTML = `<tr><th class="tight-col">Day</th><th class="tight-col">Date</th>${morH}${totMorH}${feedH}${totFeedH}${wtH}${totWtH}${combinedFcrH}${stdFeedH}${stdWtH}${stdFcrH}<th class="tight-col">Remarks</th></tr>`;
 
@@ -581,6 +599,7 @@
         generateDailyTable(45);
         document.getElementById('feedBody').innerHTML = ''; addFeedRow();
         document.getElementById('liftBody').innerHTML = ''; addLiftRow();
+        runSync();
     };
 
     function loadUserBatches(uid) {
@@ -652,8 +671,7 @@
 
     function forceSave() {
         if(saveTimeout) clearTimeout(saveTimeout);
-        let feedAgg = calcFeed(); 
-        updateCharts(feedAgg);
+        runSync(); 
         saveDataToCloud();
     }
 
@@ -662,13 +680,13 @@
         let liftingData = calcLifting(); 
         calculateTable(liftingData, feedAgg); 
         calcRemaining(); 
+        updateCharts(feedAgg);
 
         if (isSyncingFromCloud || !cloudRef) return; 
         
         document.getElementById('saveStatus').innerText = "Saving...";
         clearTimeout(saveTimeout); 
         saveTimeout = setTimeout(function() { 
-            updateCharts(feedAgg);
             saveDataToCloud(); 
         }, 1000); 
     }
@@ -754,10 +772,7 @@
             });
         } else { addLiftRow(); }
 
-        let feedAgg = calcFeed();
-        calculateTable(calcLifting(), feedAgg); 
-        calcRemaining(); 
-        updateCharts(feedAgg);
+        runSync(); 
     }
 
     // ==========================================
@@ -793,10 +808,10 @@
 
         let combinedFcrCell = `<td>${hiddenFcrInputs}${hiddenBatchFcr}<div id="display_fcr_${i}" style="line-height: 1.4; min-height: 24px;">-</div></td>`;
 
-        // Modern Grey Locked Format
-        let stdFeedCell = `<td class="std-cell">${sFd}</td>`;
+        // Modern Boxed Format
+        let stdFeedCell = `<td class="std-cell std-cell-left">${sFd}</td>`;
         let stdWtCell = `<td class="std-cell">${sWt}</td>`;
-        let stdFcrCell = `<td class="std-cell">${sFcr}</td>`;
+        let stdFcrCell = `<td class="std-cell std-cell-right">${sFcr}</td>`;
         
         tr.innerHTML = `<td><strong>${i}</strong></td><td>${dateInput}</td>${morCells}${totMorCell}${feedCells}${totFeedCell}${wtCells}${totWtCellOutput}${combinedFcrCell}${stdFeedCell}${stdWtCell}${stdFcrCell}<td><input type="text" id="note_${i}" onchange="runSync()"></td>`;
         tbody.appendChild(tr);
@@ -1026,7 +1041,6 @@
             if (canCalcBatch && cumulativeFeedBags > 0 && batchFcrField) { batchFcrField.value = ((cumulativeFeedBags * bagWt) / totalBatchBiomass).toFixed(3); } 
             else { if (batchFcrField) batchFcrField.value = ''; }
             
-            // DYNAMIC COMBINED FCR WITH SMART COLOR HIGHLIGHTING & FIXED LAYOUT
             let dispDiv = document.getElementById(`display_fcr_${i}`);
             if (dispDiv) {
                 let stdFcrNum = (i <= 42 && STANDARD_DATA[i].fcr !== '-') ? parseFloat(STANDARD_DATA[i].fcr) : null;
@@ -1074,51 +1088,8 @@
     }
 
     // ==========================================
-    // CHART ENGINE WITH INTERPOLATION
+    // CHART ENGINE - FIXED (RAW DATA ONLY)
     // ==========================================
-    function interpolateArray(arr) {
-        let n = arr.length;
-        let result = [...arr];
-        let lastValidIdx = -1;
-        
-        for (let i = 0; i < n; i++) {
-            if (result[i] !== null) {
-                if (lastValidIdx !== -1 && i - lastValidIdx > 1) {
-                    let steps = i - lastValidIdx;
-                    let diff = result[i] - result[lastValidIdx];
-                    for (let j = 1; j < steps; j++) {
-                        result[lastValidIdx + j] = result[lastValidIdx] + (diff * (j / steps));
-                    }
-                }
-                lastValidIdx = i;
-            }
-        }
-        
-        // Extrapolate to the end if data stops
-        if (lastValidIdx !== -1 && lastValidIdx > 0 && lastValidIdx < n - 1) {
-            let slope = 0;
-            let count = 0;
-            // Get average slope of last 3 valid segments to make it smooth
-            for (let i = lastValidIdx; i >= 1; i--) {
-                if (arr[i] !== null && arr[i-1] !== null) {
-                    slope += (arr[i] - arr[i-1]);
-                    count++;
-                    if (count >= 3) break;
-                }
-            }
-            if (count > 0) slope = slope / count;
-            
-            for (let i = lastValidIdx + 1; i < n; i++) {
-                // Only extrapolate if we have logged other daily data up to this point
-                let mInput = document.getElementById(`m1_${i+1}`);
-                if (mInput && mInput.value !== '') {
-                    result[i] = result[i-1] + slope;
-                }
-            }
-        }
-        return result;
-    }
-
     function updateCharts(feedAgg) {
         if (typeof Chart === 'undefined') return; 
         if(!feedAgg) feedAgg = {};
@@ -1161,16 +1132,12 @@
             mortData.push(hasData ? dayMor : null); actualWtData.push(dayActualWt); actualFcrData.push(dayActualFcr); actualFeedGramsData.push(actualGrams);
         }
 
-        // Apply Smoothing Math
-        let smoothWtData = interpolateArray(actualWtData);
-        let smoothFcrData = interpolateArray(actualFcrData);
-
         const ctxWt = document.getElementById('wtChart').getContext('2d');
         if (wtChartInstance) wtChartInstance.destroy();
         wtChartInstance = new Chart(ctxWt, { 
             type: 'line', 
             data: { labels: labels, datasets: [
-                { label: 'Actual Avg Wt (kg)', data: smoothWtData, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.3, pointRadius: 2 },
+                { label: 'Actual Avg Wt (kg)', data: actualWtData, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.1, pointRadius: 4, spanGaps: true },
                 { label: 'Standard Target', data: stdWtData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
             ]}, 
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Growth (Weight)' } } } 
@@ -1181,7 +1148,7 @@
         fcrOnlyChartInstance = new Chart(ctxFcr, { 
             type: 'line', 
             data: { labels: labels, datasets: [
-                { label: 'Actual FCR', data: smoothFcrData, borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.3, pointRadius: 2 },
+                { label: 'Actual FCR', data: actualFcrData, borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.1, pointRadius: 4, spanGaps: true },
                 { label: 'Standard FCR Target', data: stdFcrData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
             ]}, 
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Feed Conversion Ratio (FCR)' } } } 
@@ -1192,7 +1159,7 @@
         intakeChartInstance = new Chart(ctxIntake, { 
             type: 'line', 
             data: { labels: labels, datasets: [
-                { label: 'Actual Intake (g/bird)', data: actualFeedGramsData, borderColor: '#f59e0b', backgroundColor: '#f59e0b', tension: 0.2, spanGaps: true, pointRadius: 2 },
+                { label: 'Actual Intake (g/bird)', data: actualFeedGramsData, borderColor: '#f59e0b', backgroundColor: '#f59e0b', tension: 0.1, spanGaps: true, pointRadius: 4 },
                 { label: 'Standard Intake Target', data: stdFeedGramsData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
             ]}, 
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Daily Feed Intake' } } } 
