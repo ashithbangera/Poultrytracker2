@@ -133,13 +133,19 @@
         
         .tight-col { width: 1%; white-space: nowrap; }
 
-        /* SOFT HIGHLIGHT FOR STANDARD COLUMNS */
-        .std-header { background-color: var(--std-head) !important; color: var(--text-main) !important; font-weight: 700; }
-        .std-cell { background-color: var(--std-cell) !important; color: var(--text-main) !important; font-weight: 600; font-size: 12px; }
-        
-        /* Remove Number Arrows */
-        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type="number"] { -moz-appearance: textfield; }
+        /* ---- SOFT HIGHLIGHT FOR STANDARD COLUMNS ---- */
+        .std-header { 
+            background-color: var(--std-head) !important; 
+            color: var(--text-main) !important; 
+            font-weight: 700; 
+        }
+        .std-cell { 
+            background-color: var(--std-cell) !important; 
+            color: var(--text-main) !important; 
+            font-weight: 600; 
+            font-size: 12px; 
+        }
+        /* ------------------------------------------------ */
         
         /* Modern Buttons */
         button { padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Inter', sans-serif; transition: all 0.2s ease; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
@@ -172,7 +178,7 @@
         @media print {
             body { background: #fff; padding: 0; color: #000; }
             .container { box-shadow: none; max-width: 100%; padding: 0; }
-            .btn-primary, .btn-success, .btn-danger, .btn-outline, .btn-dark, .actions-bar, button, .theme-toggle { display: none !important; }
+            .btn-primary, .btn-success, .btn-danger, .btn-outline, .btn-dark, .actions-bar, button { display: none !important; }
             input, select { border: none !important; background: transparent !important; color: black; font-weight: bold; }
             input::placeholder { color: transparent; }
             .chart-box { page-break-inside: avoid; border: none; }
@@ -406,10 +412,8 @@
         localStorage.setItem('poultryDarkMode', isDark);
         applyChartTheme();
         
-        // Re-render charts to catch new colors immediately
-        if (document.getElementById('appContainer').offsetWidth > 0) {
-            runSync(); 
-        }
+        // Re-render charts safely
+        try { updateCharts(calcFeed()); } catch(e) {}
     }
 
     if (localStorage.getItem('poultryDarkMode') === 'true') {
@@ -488,8 +492,7 @@
         document.getElementById('appContainer').style.display = 'block';
         document.getElementById('displayBatchName').innerText = currentBatch || "N/A";
         
-        // Wait exactly 150ms for the appContainer to physically render in the DOM before calculating charts
-        setTimeout(() => { runSync(); }, 150); 
+        runSync();
     }
     function backToDashboard() {
         localStorage.setItem('poultryCurrentView', 'dashboard');
@@ -749,7 +752,7 @@
                     console.error("Load Error:", e); 
                 }
             } else {
-                // FALLBACK: If Cloud Data is completely empty or corrupted, build a clean slate instead of crashing
+                // Fallback for new or empty batch
                 generateDailyTable(45);
                 document.getElementById('feedBody').innerHTML = ''; addFeedRow();
                 document.getElementById('beddingBody').innerHTML = ''; addBeddingRow();
@@ -762,12 +765,7 @@
         });
     }
 
-    function forceSave() {
-        if(saveTimeout) clearTimeout(saveTimeout);
-        runSync(); 
-        saveDataToCloud();
-    }
-
+    // MAIN SYNC & RENDER TRIGGER WITH SAFETY NET
     function runSync() {
         let feedAgg = calcFeed(); 
         let liftingData = calcLifting(); 
@@ -775,11 +773,14 @@
         calcRemaining();
         runEstimator();
         
-        // ONLY RENDER IF SCREEN IS TRULY VISIBLE (Fixes Chart.js 0x0 canvas crash)
-        if (document.getElementById('appContainer').offsetWidth > 0) {
+        // SAFETY NET: Even if charts crash entirely, the code below this block will still run!
+        try {
             updateCharts(feedAgg);
+        } catch (e) {
+            console.error("Chart Error prevented, Data is Safe: ", e);
         }
 
+        // If downloading data from cloud, don't immediately re-upload it
         if (isSyncingFromCloud || !cloudRef) return; 
         
         document.getElementById('saveStatus').innerText = "Saving...";
@@ -848,7 +849,6 @@
     function loadCloudData(data) {
         if (!data || !data.settings) return;
         
-        // Safety Fallbacks in case arrays are missing
         data.daily = data.daily || [];
         data.feed = data.feed || [];
         data.bedding = data.bedding || [];
@@ -873,7 +873,6 @@
             if(dayData.note !== undefined) { document.getElementById('note_' + i).value = dayData.note; }
         });
         
-        // If data.daily was empty, we need to generate blank rows
         if (data.daily.length === 0) generateDailyTable(45);
 
         document.getElementById('feedBody').innerHTML = '';
@@ -919,8 +918,7 @@
         for(let s=1; s<=shedCount; s++) {
             morCells += `<td><input type="number" id="m${s}_${i}" onchange="runSync()"></td>`;
             feedCells += `<td><input type="text" id="f${s}_${i}" placeholder="B.kg" onchange="runSync()"></td>`;
-            
-            // FIXED: type="text" inputmode="decimal" perfectly removes the desktop arrows!
+            // inputmode="decimal" stops desktop arrows
             wtCells += `<td><input type="text" inputmode="decimal" id="wt${s}_${i}" onchange="runSync()"></td>`;
             hiddenFcrInputs += `<input type="hidden" id="fcr${s}_${i}">`;
         }
@@ -933,7 +931,6 @@
 
         let combinedFcrCell = `<td>${hiddenFcrInputs}${hiddenBatchFcr}<div id="display_fcr_${i}" style="line-height: 1.4; min-height: 24px;">-</div></td>`;
 
-        // Solid, Clean Standard Highlights
         let stdFeedCell = `<td class="std-cell">${sFd}</td>`;
         let stdWtCell = `<td class="std-cell">${sWt}</td>`;
         let stdFcrCell = `<td class="std-cell">${sFcr}</td>`;
@@ -1230,7 +1227,7 @@
     }
 
     // ==========================================
-    // CHART ENGINE - SAFE (RAW DATA)
+    // CHART ENGINE - SAFE (ORIGINAL, NO EXTRAPOLATION)
     // ==========================================
     function updateCharts(feedAgg) {
         if (typeof Chart === 'undefined') return; 
@@ -1274,28 +1271,31 @@
             mortData.push(hasData ? dayMor : null); actualWtData.push(dayActualWt); actualFcrData.push(dayActualFcr); actualFeedGramsData.push(actualGrams);
         }
 
+        const ctxWt = document.getElementById('wtChart').getContext('2d');
         if (wtChartInstance) wtChartInstance.destroy();
-        wtChartInstance = new Chart(document.getElementById('wtChart').getContext('2d'), { 
+        wtChartInstance = new Chart(ctxWt, { 
             type: 'line', 
             data: { labels: labels, datasets: [
-                { label: 'Actual Avg Wt (kg)', data: actualWtData, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.1, pointRadius: 4, spanGaps: true },
+                { label: 'Actual Avg Wt (kg)', data: actualWtData, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.1, spanGaps: true, pointRadius: 4 },
                 { label: 'Standard Target', data: stdWtData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
             ]}, 
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Growth (Weight)' } } } 
         });
 
+        const ctxFcr = document.getElementById('fcrOnlyChart').getContext('2d');
         if (fcrOnlyChartInstance) fcrOnlyChartInstance.destroy();
-        fcrOnlyChartInstance = new Chart(document.getElementById('fcrOnlyChart').getContext('2d'), { 
+        fcrOnlyChartInstance = new Chart(ctxFcr, { 
             type: 'line', 
             data: { labels: labels, datasets: [
-                { label: 'Actual FCR', data: actualFcrData, borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.1, pointRadius: 4, spanGaps: true },
+                { label: 'Actual FCR', data: actualFcrData, borderColor: '#10b981', backgroundColor: '#10b981', tension: 0.1, spanGaps: true, pointRadius: 4 },
                 { label: 'Standard FCR Target', data: stdFcrData, borderColor: '#94a3b8', borderDash: [5, 5], pointRadius: 0, tension: 0.2 }
             ]}, 
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Feed Conversion Ratio (FCR)' } } } 
         });
 
+        const ctxIntake = document.getElementById('intakeChart').getContext('2d');
         if (intakeChartInstance) intakeChartInstance.destroy();
-        intakeChartInstance = new Chart(document.getElementById('intakeChart').getContext('2d'), { 
+        intakeChartInstance = new Chart(ctxIntake, { 
             type: 'line', 
             data: { labels: labels, datasets: [
                 { label: 'Actual Intake (g/bird)', data: actualFeedGramsData, borderColor: '#f59e0b', backgroundColor: '#f59e0b', tension: 0.1, spanGaps: true, pointRadius: 4 },
@@ -1304,8 +1304,9 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { title: { display: true, text: 'Daily Feed Intake' } } } 
         });
 
+        const ctxMort = document.getElementById('mortChart').getContext('2d');
         if (mortChartInstance) mortChartInstance.destroy();
-        mortChartInstance = new Chart(document.getElementById('mortChart').getContext('2d'), { 
+        mortChartInstance = new Chart(ctxMort, { 
             type: 'bar', 
             data: { labels: labels, datasets: [
                 { label: 'Daily Dead Birds', data: mortData, backgroundColor: '#ef4444' }
