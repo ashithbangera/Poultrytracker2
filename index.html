@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Smart Poultry Tracker (Pro Edition)</title>
     
-    <!-- PWA Manifest Link -->
     <link rel="manifest" href="manifest.json">
-
-    <!-- Premium Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Firebase SDKs -->
@@ -64,17 +61,15 @@
         }
 
         body { font-family: 'Inter', sans-serif; background-color: var(--bg); margin: 0; padding: 20px; color: var(--text-main); transition: background-color 0.3s ease, color 0.3s ease; }
-        
         .container { max-width: 98%; width: 100%; margin: 0 auto; box-sizing: border-box; }
         h1, h2, h3 { color: var(--secondary); margin-top: 0; letter-spacing: -0.02em; }
         
-        /* Modern Auth Screen */
         #loginScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
         .login-box { background: var(--card-bg); padding: 40px; border-radius: 16px; width: 340px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid var(--card-border); }
         .login-box h2 { color: var(--primary); margin-bottom: 20px; }
         
-        /* Modern Inputs */
-        input[type="number"], input[type="text"], input[type="date"], input[type="email"], input[type="password"], select { 
+        /* STRICT TEXT INPUTS TO BANISH NUMBER ARROWS GLOBALLY */
+        input[type="text"], input[type="date"], input[type="email"], input[type="password"], select { 
             width: 100%; padding: 8px 6px; border: 1px solid transparent; border-radius: 6px; box-sizing: border-box; text-align: center;
             background-color: var(--input-bg); font-family: 'Inter', sans-serif; font-weight: 500; font-size: 13px; color: var(--text-main);
             transition: all 0.2s ease;
@@ -89,15 +84,13 @@
         #dailyBody input[type="date"], #feedBody input[type="date"], #liftBody input[type="date"], #beddingBody input[type="date"] { width: 115px !important; min-width: 115px !important; }
         #feedHead th, #liftHead th, #dailyHead th { white-space: nowrap; padding: 10px 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
         #feedBody select { width: 100px !important; min-width: 100px !important; }
-        #dailyBody input[type="text"], #dailyBody input[readonly], #dailyBody input[type="number"],
-        #feedBody input[type="text"], #feedBody input[readonly], 
-        #liftBody input[type="number"], #liftBody input[type="text"], #liftBody input[readonly] { 
+        #dailyBody input[type="text"], #dailyBody input[readonly], #feedBody input[type="text"], #feedBody input[readonly], 
+        #liftBody input[type="text"], #liftBody input[readonly] { 
             width: 55px !important; min-width: 55px !important; 
         }
         
         .forgot-link { display: block; margin-top: 15px; color: var(--accent); cursor: pointer; font-size: 14px; background: none; border: none; width: 100%; font-weight: 500; text-align: center;}
         
-        /* Modern Cards & Layout */
         .dashboard-grid { display: grid; grid-template-columns: 1fr; gap: 20px; max-width: 800px; margin: 0 auto; }
         .dash-card { background: var(--card-bg); border: 1px solid var(--card-border); padding: 25px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); transition: background-color 0.3s ease, border-color 0.3s ease; }
         .dash-card h3 { border-bottom: 1px solid var(--card-border); padding-bottom: 12px; color: var(--secondary); }
@@ -110,7 +103,6 @@
         
         .section { background: var(--card-bg); padding: 20px; border: 1px solid var(--card-border); border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); margin-bottom: 20px; transition: background-color 0.3s ease, border-color 0.3s ease; }
         
-        /* Collapsible Details Styles */
         details.section { transition: all 0.3s ease; }
         details > summary { cursor: pointer; outline: none; display: flex; align-items: center; font-size: 18px; font-weight: 700; color: var(--secondary); list-style: none; user-select: none; }
         details > summary::-webkit-details-marker { display: none; }
@@ -119,7 +111,6 @@
         details[open] > summary { margin-bottom: 15px; border-bottom: 1px solid var(--card-border); padding-bottom: 10px; }
         details > summary h2 { margin: 0; font-size: inherit; color: inherit; }
 
-        /* Modern Tables with Sticky Glass Headers */
         .table-responsive { overflow-x: auto; border-radius: 8px; border: 1px solid var(--card-border); }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 8px 4px; text-align: center; border-bottom: 1px solid var(--card-border); color: var(--text-main); }
@@ -133,21 +124,10 @@
         
         .tight-col { width: 1%; white-space: nowrap; }
 
-        /* ---- SOFT HIGHLIGHT FOR STANDARD COLUMNS ---- */
-        .std-header { 
-            background-color: var(--std-head) !important; 
-            color: var(--text-main) !important; 
-            font-weight: 700; 
-        }
-        .std-cell { 
-            background-color: var(--std-cell) !important; 
-            color: var(--text-main) !important; 
-            font-weight: 600; 
-            font-size: 12px; 
-        }
-        /* ------------------------------------------------ */
+        /* CLEAN SOFT HIGHLIGHT FOR STANDARD COLUMNS */
+        .std-header { background-color: var(--std-head) !important; color: var(--text-main) !important; font-weight: 700; }
+        .std-cell { background-color: var(--std-cell) !important; color: var(--text-main) !important; font-weight: 600; font-size: 12px; }
         
-        /* Modern Buttons */
         button { padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Inter', sans-serif; transition: all 0.2s ease; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         button:hover { transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .btn-primary { background-color: var(--accent); color: white; }
@@ -161,10 +141,9 @@
         .theme-toggle { padding: 8px 12px; font-size: 14px; background: transparent; border: 1px solid var(--card-border); color: var(--text-main); border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: none;}
         .theme-toggle:hover { background: var(--hover-bg); }
         
-        /* Summary Footer Rows */
         .totals-row { background-color: var(--hover-bg); font-weight: 700; color: var(--text-main); font-size: 13px; }
         .status-row { background-color: var(--card-border); font-weight: 600; font-size: 13px; color: var(--primary); }
-        .save-indicator { font-size: 14px; color: var(--success); font-weight: 600; margin-right: 15px; }
+        .save-indicator { font-size: 14px; color: var(--success); font-weight: 600; margin-right: 15px; transition: color 0.3s ease; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; }
         .modal-content { background: var(--card-bg); padding: 30px; border-radius: 20px; width: 450px; max-width: 90%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); border-top: 6px solid var(--accent); max-height: 90vh; overflow-y: auto; color: var(--text-main); }
@@ -178,7 +157,7 @@
         @media print {
             body { background: #fff; padding: 0; color: #000; }
             .container { box-shadow: none; max-width: 100%; padding: 0; }
-            .btn-primary, .btn-success, .btn-danger, .btn-outline, .btn-dark, .actions-bar, button { display: none !important; }
+            .btn-primary, .btn-success, .btn-danger, .btn-outline, .btn-dark, .actions-bar, button, .theme-toggle { display: none !important; }
             input, select { border: none !important; background: transparent !important; color: black; font-weight: bold; }
             input::placeholder { color: transparent; }
             .chart-box { page-break-inside: avoid; border: none; }
@@ -239,7 +218,7 @@
                 </div>
                 <div class="input-group">
                     <label>Feed Bag Weight (kg)</label>
-                    <input type="number" id="bagWt" value="50" onchange="runSync()">
+                    <input type="text" inputmode="decimal" id="bagWt" value="50" onchange="runSync()">
                 </div>
             </div>
             
@@ -412,8 +391,11 @@
         localStorage.setItem('poultryDarkMode', isDark);
         applyChartTheme();
         
-        // Re-render charts safely
-        try { updateCharts(calcFeed()); } catch(e) {}
+        // Safely re-render charts so the colors instantly switch
+        let container = document.getElementById('appContainer');
+        if (container && container.style.display !== 'none' && container.offsetWidth > 0) {
+            runSync(); 
+        }
     }
 
     if (localStorage.getItem('poultryDarkMode') === 'true') {
@@ -448,25 +430,14 @@
         apiKey: "AIzaSyB9UXdBlmPi7MTC388W2D4353TqOvr98i8",
         authDomain: "poultry-tracker-181c7.firebaseapp.com",
         databaseURL: "https://poultry-tracker-181c7-default-rtdb.asia-southeast1.firebasedatabase.app/",
-        projectId: "poultry-tracker-181c7",
-        storageBucket: "poultry-tracker-181c7.firebasestorage.app",
-        messagingSenderId: "641582598857",
-        appId: "1:641582598857:web:263050e6cea1f563961b18"
+        projectId: "poultry-tracker-181c7"
     };
 
-    let totalDays = 45; 
-    let shedCount = 2; 
-    let saveTimeout = null;
-    let cloudRef = null;
-    let isSyncingFromCloud = false; 
-    let isLocalSave = false; 
-    let currentUid = null;
-    let currentBatch = null;
+    let totalDays = 45, shedCount = 2, saveTimeout = null, cloudRef = null;
+    let isSyncingFromCloud = false, isLocalSave = false;
+    let currentUid = null, currentBatch = null;
     
-    let wtChartInstance = null;
-    let fcrOnlyChartInstance = null;
-    let intakeChartInstance = null;
-    let mortChartInstance = null;
+    let wtChartInstance = null, fcrOnlyChartInstance = null, intakeChartInstance = null, mortChartInstance = null;
 
     if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
     
@@ -492,43 +463,27 @@
         document.getElementById('appContainer').style.display = 'block';
         document.getElementById('displayBatchName').innerText = currentBatch || "N/A";
         
-        runSync();
+        // Wait exactly 150ms for screen layout to finalize before checking width and drawing charts.
+        setTimeout(() => { 
+            if(wtChartInstance) wtChartInstance.destroy();
+            if(fcrOnlyChartInstance) fcrOnlyChartInstance.destroy();
+            if(intakeChartInstance) intakeChartInstance.destroy();
+            if(mortChartInstance) mortChartInstance.destroy();
+            wtChartInstance = fcrOnlyChartInstance = intakeChartInstance = mortChartInstance = null;
+            runSync(); 
+        }, 150); 
     }
+    
     function backToDashboard() {
         localStorage.setItem('poultryCurrentView', 'dashboard');
         document.getElementById('appContainer').style.display = 'none';
         document.getElementById('landingScreen').style.display = 'block';
     }
-    function resetError() { document.getElementById('authError').innerText = ""; }
     
-    function login() {
-        resetError();
-        const e = document.getElementById('authEmail').value, p = document.getElementById('authPassword').value;
-        if(!e || !p) { document.getElementById('authError').innerText = "Please enter email and password."; return; }
-        document.getElementById('authError').innerText = "Logging in...";
-        firebase.auth().signInWithEmailAndPassword(e, p).then(() => {
-            document.getElementById('authError').innerText = "";
-            document.getElementById('loginScreen').style.display = 'none';
-        }).catch(err => { document.getElementById('authError').innerText = err.message; });
-    }
-    function register() {
-        resetError();
-        const e = document.getElementById('authEmail').value, p = document.getElementById('authPassword').value;
-        if(!e || !p) { document.getElementById('authError').innerText = "Please enter email and password."; return; }
-        document.getElementById('authError').innerText = "Creating account...";
-        firebase.auth().createUserWithEmailAndPassword(e, p).then(() => {
-            document.getElementById('authError').innerText = "";
-            document.getElementById('loginScreen').style.display = 'none';
-        }).catch(err => { document.getElementById('authError').innerText = err.message; });
-    }
-    function resetPassword() {
-        resetError(); const e = document.getElementById('authEmail').value;
-        if (!e) { document.getElementById('authError').innerText = "Please enter your email address above."; return; }
-        firebase.auth().sendPasswordResetEmail(e).then(() => {
-            document.getElementById('authError').style.color = "var(--success)";
-            document.getElementById('authError').innerText = "Password reset email sent!";
-        }).catch(err => { document.getElementById('authError').style.color = "var(--danger)"; document.getElementById('authError').innerText = err.message; });
-    }
+    function resetError() { document.getElementById('authError').innerText = ""; }
+    function login() { resetError(); firebase.auth().signInWithEmailAndPassword(document.getElementById('authEmail').value, document.getElementById('authPassword').value).catch(err => { document.getElementById('authError').innerText = err.message; }); }
+    function register() { resetError(); firebase.auth().createUserWithEmailAndPassword(document.getElementById('authEmail').value, document.getElementById('authPassword').value).catch(err => { document.getElementById('authError').innerText = err.message; }); }
+    function resetPassword() { resetError(); firebase.auth().sendPasswordResetEmail(document.getElementById('authEmail').value).then(() => { document.getElementById('authError').style.color = "var(--success)"; document.getElementById('authError').innerText = "Password reset email sent!"; }).catch(err => { document.getElementById('authError').style.color = "var(--danger)"; document.getElementById('authError').innerText = err.message; }); }
     function logout() { firebase.auth().signOut(); localStorage.removeItem('poultryCurrentView'); }
 
     // ==========================================
@@ -563,7 +518,7 @@
     function renderDynamicStructure() {
         let initHtml = '';
         for(let s=1; s<=shedCount; s++) {
-            initHtml += `<div class="input-group" style="margin-bottom:0;"><input type="number" id="initShed${s}" placeholder="Shed ${s} Total" onchange="runSync()"></div>`;
+            initHtml += `<div class="input-group" style="margin-bottom:0;"><input type="text" inputmode="decimal" id="initShed${s}" placeholder="Shed ${s} Total" onchange="runSync()"></div>`;
         }
         document.getElementById('initShedContainer').innerHTML = initHtml;
 
@@ -579,7 +534,6 @@
         let totWtH = shedCount > 1 ? `<th class="tight-col">Avg Wt</th>` : '';
         let combinedFcrH = `<th class="tight-col">Act FCR</th>`;
 
-        // Clean Solid Highlight Headers (No harsh boxed borders)
         let stdFeedH = `<th class="tight-col std-header">Std Fd(g)</th>`;
         let stdWtH = `<th class="tight-col std-header">Std Wt(kg)</th>`;
         let stdFcrH = `<th class="tight-col std-header">Std FCR</th>`;
@@ -672,7 +626,7 @@
     }
 
     // ==========================================
-    // BATCH & CLOUD SYSTEM
+    // BATCH & CLOUD SYSTEM WITH SAFETY NET
     // ==========================================
     window.onload = function() {
         applyChartTheme();
@@ -744,62 +698,87 @@
             let data = snap.val();
             
             isSyncingFromCloud = true; 
-            
             if(data) { 
                 try { 
                     loadCloudData(data); 
                 } catch(e) { 
-                    console.error("Load Error:", e); 
+                    console.error("Data Load Error:", e); 
                 }
             } else {
-                // Fallback for new or empty batch
                 generateDailyTable(45);
                 document.getElementById('feedBody').innerHTML = ''; addFeedRow();
                 document.getElementById('beddingBody').innerHTML = ''; addBeddingRow();
                 document.getElementById('liftBody').innerHTML = ''; addLiftRow();
                 runSync();
             }
-            
             isSyncingFromCloud = false; 
             document.getElementById('saveStatus').innerText = "Up to date"; 
         });
     }
 
-    // MAIN SYNC & RENDER TRIGGER WITH SAFETY NET
+    function forceSave() {
+        if(saveTimeout) clearTimeout(saveTimeout);
+        runSync(); 
+        saveDataToCloud();
+    }
+
+    // ==========================================
+    // THE SAFE SYNC ENGINE (CRASH-PROOF)
+    // ==========================================
     function runSync() {
-        let feedAgg = calcFeed(); 
-        let liftingData = calcLifting(); 
-        calculateTable(liftingData, feedAgg); 
-        calcRemaining();
-        runEstimator();
+        let feedAgg = {};
         
-        // SAFETY NET: Even if charts crash entirely, the code below this block will still run!
+        // 1. Run Math. If Math fails, log it, but proceed to saving.
         try {
-            updateCharts(feedAgg);
+            feedAgg = calcFeed(); 
+            let liftingData = calcLifting(); 
+            calculateTable(liftingData, feedAgg); 
+            calcRemaining();
+            runEstimator();
         } catch (e) {
-            console.error("Chart Error prevented, Data is Safe: ", e);
+            console.error("Calculation Error:", e);
+        }
+        
+        // 2. Run Charts. If Charts fail or screen is hidden, silently skip, BUT proceed to saving.
+        try {
+            let container = document.getElementById('appContainer');
+            if (container && container.style.display !== 'none' && container.offsetWidth > 0) {
+                updateCharts(feedAgg);
+            }
+        } catch (e) {
+            console.error("Chart Render Error:", e);
         }
 
-        // If downloading data from cloud, don't immediately re-upload it
-        if (isSyncingFromCloud || !cloudRef) return; 
-        
-        document.getElementById('saveStatus').innerText = "Saving...";
-        clearTimeout(saveTimeout); 
-        saveTimeout = setTimeout(function() { saveDataToCloud(); }, 1000); 
+        // 3. SECURE SAVE. Only save if we are NOT currently unpacking data from the cloud.
+        if (!isSyncingFromCloud && cloudRef) {
+            document.getElementById('saveStatus').innerText = "Saving...";
+            document.getElementById('saveStatus').style.color = "var(--text-muted)";
+            clearTimeout(saveTimeout); 
+            saveTimeout = setTimeout(function() { saveDataToCloud(); }, 1000); 
+        }
     }
 
     function buildDataObject() {
-        let data = { settings: { shedCount: shedCount, bagWt: document.getElementById('bagWt').value, days: totalDays }, daily: [], feed: [], lift: [], bedding: [] };
+        let data = { settings: { shedCount: shedCount, bagWt: parseFloat(document.getElementById('bagWt').value) || 50, days: totalDays }, daily: [], feed: [], lift: [], bedding: [] };
         
-        for(let s=1; s<=shedCount; s++) { data.settings[`initShed${s}`] = document.getElementById(`initShed${s}`) ? document.getElementById(`initShed${s}`).value : ''; }
+        for(let s=1; s<=shedCount; s++) { 
+            let initEl = document.getElementById(`initShed${s}`);
+            data.settings[`initShed${s}`] = initEl ? initEl.value : ''; 
+        }
 
         for(let i=1; i<=totalDays; i++) {
             if(!document.getElementById('m1_' + i)) continue;
-            let rowObj = { date: document.getElementById('date_' + i).value, note: document.getElementById('note_' + i).value };
+            let dateEl = document.getElementById('date_' + i);
+            let noteEl = document.getElementById('note_' + i);
+            let rowObj = { date: dateEl ? dateEl.value : '', note: noteEl ? noteEl.value : '' };
+            
             for(let s=1; s<=shedCount; s++) {
-                rowObj[`m${s}`] = document.getElementById(`m${s}_${i}`).value;
-                rowObj[`f${s}`] = document.getElementById(`f${s}_${i}`).value;
-                rowObj[`wt${s}`] = document.getElementById(`wt${s}_${i}`).value;
+                let m = document.getElementById(`m${s}_${i}`);
+                let f = document.getElementById(`f${s}_${i}`);
+                let w = document.getElementById(`wt${s}_${i}`);
+                rowObj[`m${s}`] = m ? m.value : '';
+                rowObj[`f${s}`] = f ? f.value : '';
+                rowObj[`wt${s}`] = w ? w.value : '';
             }
             data.daily.push(rowObj);
         }
@@ -808,7 +787,10 @@
         for (let j = 0; j < feedRows.length; j++) {
             let row = feedRows[j]; let typeSel = row.querySelector('select'); if(!typeSel) continue;
             let rowObj = { date: row.cells[0].querySelector('input').value, type: typeSel.value };
-            for(let s=1; s<=shedCount; s++) { rowObj[`b${s}`] = row.querySelector(`.bag-input.shed-${s}`).value; }
+            for(let s=1; s<=shedCount; s++) { 
+                let bInput = row.querySelector(`.bag-input.shed-${s}`);
+                rowObj[`b${s}`] = bInput ? bInput.value : ''; 
+            }
             data.feed.push(rowObj);
         }
         
@@ -837,13 +819,20 @@
     function saveDataToCloud() {
         if(!cloudRef) return;
         isLocalSave = true; 
-        cloudRef.set(buildDataObject()).then(() => { 
-            document.getElementById('saveStatus').innerText = "Up to date"; 
-            setTimeout(() => { isLocalSave = false; }, 800); 
-        }).catch(err => { 
-            document.getElementById('saveStatus').innerText = "Sync Error"; 
-            isLocalSave = false; 
-        });
+        try {
+            cloudRef.set(buildDataObject()).then(() => { 
+                document.getElementById('saveStatus').innerText = "Up to date"; 
+                document.getElementById('saveStatus').style.color = "var(--success)";
+                setTimeout(() => { isLocalSave = false; }, 800); 
+            }).catch(err => { 
+                document.getElementById('saveStatus').innerText = "Sync Error"; 
+                document.getElementById('saveStatus').style.color = "var(--danger)";
+                isLocalSave = false; 
+            });
+        } catch (e) {
+            console.error("Save Error:", e);
+            isLocalSave = false;
+        }
     }
 
     function loadCloudData(data) {
@@ -916,9 +905,8 @@
         let hiddenFcrInputs = '';
         
         for(let s=1; s<=shedCount; s++) {
-            morCells += `<td><input type="number" id="m${s}_${i}" onchange="runSync()"></td>`;
-            feedCells += `<td><input type="text" id="f${s}_${i}" placeholder="B.kg" onchange="runSync()"></td>`;
-            // inputmode="decimal" stops desktop arrows
+            morCells += `<td><input type="text" inputmode="decimal" id="m${s}_${i}" onchange="runSync()"></td>`;
+            feedCells += `<td><input type="text" inputmode="decimal" id="f${s}_${i}" placeholder="B.kg" onchange="runSync()"></td>`;
             wtCells += `<td><input type="text" inputmode="decimal" id="wt${s}_${i}" onchange="runSync()"></td>`;
             hiddenFcrInputs += `<input type="hidden" id="fcr${s}_${i}">`;
         }
@@ -965,7 +953,7 @@
         });
         selectHtml += `</select>`;
         let bagCells = ''; 
-        for(let s=1; s<=shedCount; s++) { bagCells += `<td><input type="text" class="bag-input shed-${s}" placeholder="B.kg" value="${bags[s-1] || ''}" onchange="runSync()"></td>`; }
+        for(let s=1; s<=shedCount; s++) { bagCells += `<td><input type="text" inputmode="decimal" class="bag-input shed-${s}" placeholder="B.kg" value="${bags[s-1] || ''}" onchange="runSync()"></td>`; }
         tr.innerHTML = `<td><input type="date" value="${date}" onchange="runSync()"></td><td>${selectHtml}</td>${bagCells}<td><input type="text" readonly class="feed-row-total"></td>`;
         tbody.appendChild(tr); if(!isSyncingFromCloud) runSync();
     }
@@ -977,7 +965,7 @@
         let checkedHtml = arrived ? 'checked' : '';
         tr.innerHTML = `
             <td><input type="date" value="${date}" onchange="runSync()"></td>
-            <td><input type="text" placeholder="e.g. 2 Loads Groundnut Shell" value="${details}" onchange="runSync()"></td>
+            <td><input type="text" placeholder="e.g. 2 Loads Husk" value="${details}" onchange="runSync()"></td>
             <td><input type="checkbox" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--success);" ${checkedHtml} onchange="runSync()"></td>
         `;
         tbody.appendChild(tr);
@@ -987,8 +975,8 @@
 
     function addLiftRow(date='', sheds=[], boxes='', tWt='') {
         const tbody = document.getElementById('liftBody'); const tr = document.createElement('tr');
-        let shedCells = ''; for(let s=1; s<=shedCount; s++) { shedCells += `<td><input type="number" value="${sheds[s-1] || ''}" onchange="runSync()"></td>`; }
-        tr.innerHTML = `<td><input type="date" value="${date}" onchange="runSync()"></td>${shedCells}<td><input type="number" value="${boxes}" onchange="runSync()"></td><td><input type="text" readonly></td><td><input type="text" inputmode="decimal" value="${tWt}" onchange="runSync()"></td><td><input type="text" readonly></td>`;
+        let shedCells = ''; for(let s=1; s<=shedCount; s++) { shedCells += `<td><input type="text" inputmode="decimal" value="${sheds[s-1] || ''}" onchange="runSync()"></td>`; }
+        tr.innerHTML = `<td><input type="date" value="${date}" onchange="runSync()"></td>${shedCells}<td><input type="text" inputmode="decimal" value="${boxes}" onchange="runSync()"></td><td><input type="text" readonly></td><td><input type="text" inputmode="decimal" value="${tWt}" onchange="runSync()"></td><td><input type="text" readonly></td>`;
         tbody.appendChild(tr); if(!isSyncingFromCloud) runSync();
     }
     function removeLiftRow() { const tb = document.getElementById('liftBody'); if(tb.lastChild) { tb.removeChild(tb.lastChild); runSync(); } }
@@ -1159,7 +1147,10 @@
             if(document.getElementById(`ftot_${i}`)) { document.getElementById(`ftot_${i}`).value = hasData ? formatFeedStr(dayFeedTotal, bagWt, true) : ''; }
             
             cumulativeFeedBags += dayFeedTotal; totalDailyMor += dayMorTotal;
-            let batchWtField = document.getElementById(`wt_${i}`); let batchFcrField = document.getElementById(`fcr_${i}`);
+            
+            // Fix applied: Correctly assign batch wide actual Wt to the specific daily element
+            let batchWtField = document.getElementById(`wt_${i}`); 
+            let batchFcrField = document.getElementById(`fcr_${i}`);
             let batchWt = 0;
             
             if (totalDailyLiveStockWeighed > 0) {
@@ -1258,8 +1249,9 @@
                 dayMor += parseInt(mInput ? mInput.value : 0) || 0; dayFeedBags += parseFeed(fInput ? fInput.value : '', bagWt) - ret;
             }
             
-            let wtInput = document.getElementById(`wt_${i}`) || document.getElementById(`wt1_${i}`);
-            let fcrInput = document.getElementById(`fcr_${i}`) || document.getElementById(`fcr1_${i}`);
+            // Read batch average values generated from calculateTable
+            let wtInput = document.getElementById(`wt_${i}`);
+            let fcrInput = document.getElementById(`fcr_${i}`);
             let lsInput = document.getElementById(`hidden_ls_${i}`);
             
             let dayActualWt = (wtInput && wtInput.value !== '') ? parseFloat(wtInput.value) : null;
